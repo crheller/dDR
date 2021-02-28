@@ -23,7 +23,7 @@ def compute_ellipse(x, y):
     e = np.matmul(VV, e).T + mu  # project circle back to orig space
     e = e.T
 
-    return e
+    return e[0], e[1]
 
 
 def plot_stim_pair_dDR(A, B, lab1=None, lab2=None, xlab=r"$dDR_1 (\Delta \mu)$", ylab=r"$dDR_2$", s=10, lw=1, ax=None):
@@ -35,11 +35,11 @@ def plot_stim_pair_dDR(A, B, lab1=None, lab2=None, xlab=r"$dDR_1 (\Delta \mu)$",
     
     else:
         ax.scatter(A[:, 0], A[:, 1], s=s)
-        el = compute_ellipse(A[:, 0], A[:, 1])
-        ax.plot(el[0], el[1], lw=lw, label=lab1)
+        x, y = compute_ellipse(A[:, 0], A[:, 1])
+        ax.plot(x, y, lw=lw, label=lab1)
         ax.scatter(B[:, 0], B[:, 1], s=s)
-        el = compute_ellipse(B[:, 0], B[:, 1])
-        ax.plot(el[0], el[1], lw=lw, label=lab1)
+        x, y = compute_ellipse(B[:, 0], B[:, 1])
+        ax.plot(x, y, lw=lw, label=lab1)
     
     ax.set_xlabel(xlab)
     ax.set_ylabel(ylab)
