@@ -7,5 +7,5 @@ setup(name='dDR',
       author='Charlie Heller',
       author_email='charlieheller95@gmail.com',
       license='MIT',
-      packages=[],
+      packages=['dDR', 'utils'],
       zip_safe=False)
