@@ -25,18 +25,19 @@ for ii, ss in enumerate(n):
     for i in range(0, nsamps):
         sample = np.random.normal(u, sd, ss)
         _mean.append(np.mean(sample))
-        _variance.append(np.var(sample))
+        _variance.append(np.var(sample, ddof=1))
     mean.append(np.mean(_mean))
     var.append(np.mean(_variance))
-    var_var.append(np.var(_variance))
-    mean_var.append(np.var(_mean))
+    var_var.append(np.var(_variance, ddof=1))
+    mean_var.append(np.var(_mean, ddof=1))
 
 f, ax = plt.subplots(2, 2, figsize=(6, 6))
 
 ax[0, 0].plot(n, mean_var, label=f'mean: {u}')
 ax[0, 0].plot(n, var_var, label=f'variance: {(sd**2):.3f}')
-ax[0, 0].plot(n, (sd**2)/n + ((sd**2) / nsamps), lw=5, color='tab:blue', alpha=0.5, zorder=-1, label=r'$\sigma^2$/$n$')
-ax[0, 0].plot(n, ((sd**2)**2 / (0.5*(n))), lw=5, color='tab:orange', alpha=0.5, zorder=-1, label=r'$2(\sigma^2)^2$/$(n)$')
+ax[0, 0].plot(n, (sd**2)/n, lw=5, color='tab:blue', alpha=0.5, zorder=-1, label=r'$\sigma^2$/$n$')
+ax[0, 0].plot(n, (2*(sd**2)**2 / ((n-1))), lw=5, color='tab:orange', alpha=0.5, zorder=-1, label=r'$2(\sigma^2)^2$/$(n-1)$')
+#ax[0, 0].plot(n, (n * (sd**2)**2) / (n - 1)**2, lw=5, color='tab:orange', alpha=0.5, zorder=-1, label=r'$2(\sigma^2)^2$/$(n-1)$')
 ax[0, 0].set_ylabel(f'Var. of param estimate\nacross {nsamps} samples')
 ax[0, 0].set_xlabel('Sample size')
 ax[0, 0].legend(frameon=False)
@@ -58,11 +59,10 @@ f.tight_layout()
 
 plt.show()
 
-
 # two-D case -- do covariance values behave like variance?
 nsamps = 1000
-u = [10, 4]
-cov = np.array([[4, 0.9], [0.9, 1]])
+u = [2, 2] # "z-scored data"
+cov = np.array([[1, 0.4], [0.4, 1]])
 mean = []
 var = []
 var_var = []
@@ -97,7 +97,9 @@ ax[0, 0].plot(n, ((cov[0, 0])**2 / (0.5*(n-1))), lw=5, color='tab:green', alpha=
 ax[0, 0].plot(n, var_var[:, 1, 1], label=f'variance[1, 1]: {(cov[1, 1]):.3f}')
 # covariance
 ax[0, 0].plot(n, var_var[:, 0, 1], label=f'covariance[0, 1]: {(cov[0, 1]):.3f}')
-ax[0, 0].plot(n, ((cov[0, 0] * cov[1, 1]) / (n-1)), lw=5, color='tab:purple', alpha=0.5, zorder=-1, label=r'$(\sigma_0^2\sigma_1^2)$/$(n-1)$')
+ax[0, 0].plot(n, (2*cov[0, 1]**2 + (cov[0, 0]*cov[1,1]) - cov[0, 1] ) / (n-1), lw=5, color='tab:purple', alpha=0.5, zorder=-1, \
+                                label=r'$(2\Sigma_{0,1}^2 + \sigma_0^2\sigma_1^2 - \Sigma_{0, 1})$/$(n-1)$')
+#ax[0, 0].plot(n, (n * (cov[0, 0] * cov[1, 1]) / (n-1)**2), lw=5, color='tab:purple', alpha=0.5, zorder=-1, label=r'$(\sigma_0^2\sigma_1^2)$/$(n-1)$')
 ax[0, 0].plot(n, var_var[:, 1, 0], label=f'covariance[1, 0]: {(cov[1, 0]):.3f}')
 ax[0, 0].set_ylabel(f'Var. of param estimate\nacross {nsamps} samples')
 ax[0, 0].set_xlabel('Sample size')
@@ -135,3 +137,8 @@ ax[1, 2].set_ylabel('Ratio')
 f.tight_layout()
 
 plt.show()
+
+
+# final two panel figure just illustrating the variance in estiamte of mean, variance, and covariance.
+# second panel shows covariance matrix
+f, ax = plt.subplots(1, 2, figsize=(8, 4))
