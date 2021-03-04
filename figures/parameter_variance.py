@@ -14,7 +14,7 @@ lv = abs(np.random.normal(0, 1, (10, 1)))
 lv /= np.linalg.norm(lv)
 cov = lv.dot(lv.T)
 cov += np.random.normal(0, 0.1, cov.shape)
-np.fill_diagonal(cov, 1)
+np.fill_diagonal(cov, np.random.randint(1, 2, size=cov.shape[0]))
 cov = cov.dot(cov.T)
 mean = []
 var = []
@@ -52,7 +52,7 @@ ax[0].plot(n, (2*(abs(cov[0, 0]))**2 / ((n-1))), lw=5, color='tab:orange', alpha
 
 # covariance
 ax[0].plot(n, var_var[:, 0, 1], label=r"$\Sigma_{0, 1}$")
-ax[0].plot(n, (2*cov[0, 1]**2 + (cov[0, 0]*cov[1,1]) - (cov[0, 1])) / (n-1), lw=5, color='tab:green', alpha=0.5, zorder=-1, \
+ax[0].plot(n, abs(2*cov[0, 1]**2 + (cov[0, 0]*cov[1,1]) - (cov[0, 1])) / (n-1), lw=5, color='tab:green', alpha=0.5, zorder=-1, \
                                 label=r'$(2\Sigma_{0,1}^2 + \sigma_0^2\sigma_1^2 - \Sigma_{0, 1})$/$(n-1)$')
 
 ax[0].set_ylabel(f'Var. of param estimate\nacross {nsamps} samples')
