@@ -25,7 +25,7 @@ class dDR:
             B0 = B - B.mean(axis=0, keepdims=True)
             Xcenter = np.concatenate((A0, B0), axis=0)
             evals, evecs = np.linalg.eig(np.cov(Xcenter.T))
-            evecs = evecs[:, np.argsort(evals)]
+            evecs = evecs[:, np.argsort(evals)[::-1]]
             noise_axis = evecs[:, [0]].T
         else:
             noise_axis = self.ddr2_init
@@ -46,7 +46,7 @@ class dDR:
 
             # find n additional axes, orthogonal to dDR plane
             evals, evecs = np.linalg.eig(np.cov(Xresidual.T))
-            evecs = evecs[:, np.argsort(evals)]
+            evecs = evecs[:, np.argsort(evals)[::-1]]
             noise_weights = evecs[:, :self.n_additional_axes].T
             weights = np.concatenate((weights, noise_weights), axis=0)
 

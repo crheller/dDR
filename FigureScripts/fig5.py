@@ -13,7 +13,7 @@ dU (differential) and another that is orthogonal (randomly).
 Simulate for many (1000s) neurons, then run decoding for different subsets and 
 show that information saturates as neurons are added.
 """
-from utils.decoding import compute_dprime
+from dDR.utils.decoding import compute_dprime
 from dDR.dDR import dDR
 import os
 import numpy as np
@@ -32,7 +32,7 @@ fig_name = os.path.join(os.getcwd(), 'figures/fig5.svg')
 # data/sampling params
 Ndim = 1000
 maxDim = 1000
-ksmall = 250
+ksmall = 500
 klarge = 10000
 step = 50
 RandSubsets = 50
@@ -54,7 +54,7 @@ pc1 = (pc1 / np.linalg.norm(pc1)) * 2  * var_ratio
 
 evecs = np.concatenate((diff_cor, pc1), axis=0)
 cov = evecs.T.dot(evecs)
-cov += np.random.normal(0, 0.001, cov.shape)
+cov += np.random.normal(0, 0.005, cov.shape)
 cov = cov.dot(cov.T)
 
 # ========================================== low trial number example ============================================
@@ -190,15 +190,14 @@ dp_full_klarge = np.stack(dp_full_klarge)
 
 # use full rank data matrix, highest trial number, to determine the approximate "peak" information
 norm1 = np.nanmax(np.concatenate((dp_full_klarge, dp_full_klarge)))
-norm2 = np.nanmax(np.concatenate((dp_full_ksmall, dp_full_ksmall)))
-norm2 = norm1
+norm2 = np.nanmax(np.concatenate((dp_ddr_ksmall, dp_ddr_ksmall)))
 
 dp_ddr_klarge_plot = dp_ddr_klarge / norm1
 dp_ddr_ksmall_plot = dp_ddr_ksmall / norm2
 dp_full_klarge_plot = dp_full_klarge / norm1
 dp_full_ksmall_plot = dp_full_ksmall / norm2
 
-f, ax = plt.subplots(2, 3, figsize=(6.5, 4))
+f, ax = plt.subplots(2, 3, figsize=(6.8, 4))
 
 # high sample size results
 ax[0, 0].plot(n_subsets, dp_ddr_klarge_plot.mean(axis=-1), label=r"$dDR$", color='tab:blue')
@@ -212,7 +211,7 @@ ax[0, 0].fill_between(n_subsets, dp_full_klarge_plot.mean(axis=-1)-dp_full_klarg
 ax[0, 0].set_ylim((-0.1, 1.1))
 ax[0, 0].set_xlabel(r'Number of neurons ($N$)')
 ax[0, 0].set_ylabel(r"cross-validated $d'^2$"+"\n(norm. to peak)")
-ax[0, 0].set_title(r"$N_{tot}=%s$, $k=%s$"%(str(nUnits), str(klarge)))
+ax[0, 0].set_title(r"$N_{tot}=%s$, $k=%s$"%(str(Ndim), str(klarge)))
 ax[0, 0].legend(frameon=False)
 
 idx = np.argmax(abs(evecs_klarge.T.dot(dU.T)))
@@ -227,6 +226,7 @@ ax[0, 2].plot(idx, (abs(evecs_klarge.T.dot(dU.T)))[idx], 'o', color='k', markers
 ax[0, 2].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
 ax[0, 2].set_ylabel("Cosine similarity"+"\n"+r"($cos(\theta_{\Delta \mu, e_{n}})$)")
 ax[0, 2].set_title("Signal vs. noise similarity")
+ax[0, 2].set_ylim((-0.1, 1.1))
 
 # small sample size results
 ax[1, 0].plot(n_subsets, dp_ddr_ksmall_plot.mean(axis=-1), label=r"$dDR$", color='tab:blue')
@@ -240,7 +240,7 @@ ax[1, 0].fill_between(n_subsets, dp_full_ksmall_plot.mean(axis=-1)-dp_full_ksmal
 ax[1, 0].set_ylim((-0.1, 1.1))
 ax[1, 0].set_xlabel(r'Number of neurons ($N$)')
 ax[1, 0].set_ylabel(r"cross-validated $d'^2$"+"\n(norm. to peak)")
-ax[1, 0].set_title(r"$N_{tot}=%s$, $k=%s$"%(str(nUnits), str(ksmall)))
+ax[1, 0].set_title(r"$N_{tot}=%s$, $k=%s$"%(str(Ndim), str(ksmall)))
 
 idx = np.argmax(abs(evecs_ksmall.T.dot(dU.T)))
 ax[1, 1].plot(evals_ksmall / sum(evals_ksmall), color='grey')
@@ -254,6 +254,7 @@ ax[1, 2].plot(idx, (abs(evecs_ksmall.T.dot(dU.T)))[idx], 'o', color='k', markers
 ax[1, 2].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
 ax[1, 2].set_ylabel("Cosine similarity"+"\n"+r"($cos(\theta_{\Delta \mu, e_{n}})$)")
 ax[1, 2].set_title("Signal vs. noise similarity")
+ax[1, 2].set_ylim((-0.1, 1.1))
 
 f.tight_layout()
 

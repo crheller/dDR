@@ -48,6 +48,7 @@
             <dc:title>Matplotlib v3.3.2, https://matplotlib.org/</dc:title>
           </cc:Agent>
         </dc:creator>
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>

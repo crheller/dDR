@@ -3,7 +3,7 @@ Compare dDR decoding with decoding from full rank data.
 Idea is that dDR approaches the true value much more quickly with increasing k
 Compare with other dim reduction methods here? e.g. separate curves for trial-averaged PCA, single trial PCA, FA, PLS?
 """
-from utils.decoding import compute_dprime
+from dDR.utils.decoding import compute_dprime
 from dDR.dDR import dDR
 import os
 import numpy as np
@@ -17,7 +17,7 @@ mpl.rcParams['font.size'] = 8
 
 np.random.seed(123)
 
-savefig = True
+savefig = False
 fig_name = os.path.join(os.getcwd(), 'figures/fig4.svg')
 
 # simulate dataset with single sig. cov. dimesion, for two different stimulus categories
