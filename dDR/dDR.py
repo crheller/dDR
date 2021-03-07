@@ -21,12 +21,12 @@ class dDR:
 
         # get first PC of mean centered data
         if self.ddr2_init is None:
-            pca = PCA(n_components=1)
             A0 = A - A.mean(axis=0, keepdims=True)
             B0 = B - B.mean(axis=0, keepdims=True)
             Xcenter = np.concatenate((A0, B0), axis=0)
-            pca.fit(Xcenter)
-            noise_axis = pca.components_
+            evals, evecs = np.linalg.eig(np.cov(Xcenter.T))
+            evecs = evecs[:, np.argsort(evals)]
+            noise_axis = evecs[:, [0]].T
         else:
             noise_axis = self.ddr2_init
 
@@ -45,9 +45,9 @@ class dDR:
             Xresidual = Xcenter - Xcenter.dot(weights.T).dot(weights)
 
             # find n additional axes, orthogonal to dDR plane
-            pca = PCA(n_components=self.n_additional_axes)
-            pca.fit(Xresidual)
-            noise_weights = pca.components_
+            evals, evecs = np.linalg.eig(np.cov(Xresidual.T))
+            evecs = evecs[:, np.argsort(evals)]
+            noise_weights = evecs[:, :self.n_additional_axes].T
             weights = np.concatenate((weights, noise_weights), axis=0)
 
         self.components_ = weights

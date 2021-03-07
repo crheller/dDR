@@ -25,9 +25,9 @@ lv = np.random.normal(0, 1, (nUnits, 1))
 sf = 0.5 # scale lv magnitude
 lv /= np.linalg.norm(lv) # low-dimensional LV
 lv = sf * lv
-cov1 = lv.dot(lv.T)
-cov1 += np.random.normal(0, 0.1, cov1.shape) # add small amount of random noise
-cov1 = cov1.dot(cov1.T) # force positive, semi-definite
+cov = lv.dot(lv.T)
+cov += np.random.normal(0, 0.1, cov.shape) # add small amount of random noise
+cov = cov.dot(cov.T) # force positive, semi-definite
 # Get eigenvalues / eigenvectors of the covariance matrix and sort
 evals, evecs = np.linalg.eig(cov)
 idx = np.argsort(evals)[::-1]
