@@ -7,13 +7,12 @@ Covariance matrix
 
 cross-validated d'^2 vs. k and var(covariance) vs. k. On same axes.
 """
-from utils.decoding import compute_dprime
-from utils.plotting import compute_ellipse
+from dDR.utils.decoding import compute_dprime
+from dDR.utils.plotting import compute_ellipse
 
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
@@ -25,11 +24,11 @@ savefig = True
 fig_name = os.path.join(os.getcwd(), 'figures/fig1.svg')
 
 # generate pseudo data, X, for decoding
-k1 = 25
-k2 = 250
+k1 = 10
+k2 = 100
 u1 = [2, 0]
 u2 = [-2, 0]
-cov = np.array([[2, 0.2], [0.2, 2]])
+cov = np.array([[1, 0.4], [0.4, 1]])
 x11 = np.random.multivariate_normal(u1, cov, k1)
 x21 = np.random.multivariate_normal(u2, cov, k1)
 X1 = np.stack([x11, x21])
@@ -94,6 +93,7 @@ x, y = compute_ellipse(X1[1, :, 0], X1[1, :, 1])
 ax[0, 0].plot(x, y, color='tab:orange', label='Stim. b')
 # plot decoding axis
 ref = np.array(u1) - ((np.array(u1) - np.array(u2)) / 2)
+wopt1 = (wopt1 / np.linalg.norm(wopt1)) * 2
 ax[0, 0].plot([ref[0]-wopt1[0], ref[0]+wopt1[0]], 
             [ref[1]-wopt1[1], ref[1]+wopt1[1]], 'k-')
 ax[0, 0].legend(frameon=False)
@@ -111,6 +111,7 @@ x, y = compute_ellipse(X2[1, :, 0], X2[1, :, 1])
 ax[0, 1].plot(x, y, color='tab:orange', label='Stim. b')
 # plot decoding axis
 ref = np.array(u1) - ((np.array(u1) - np.array(u2)) / 2)
+wopt2 = (wopt2 / np.linalg.norm(wopt2)) * 2
 ax[0, 1].plot([ref[0]-wopt2[0], ref[0]+wopt2[0]], 
             [ref[1]-wopt2[1], ref[1]+wopt2[1]], 'k-')
 ax[0, 1].legend(frameon=False)
@@ -119,9 +120,24 @@ ax[0, 1].set_ylabel(r"$n_2$ spike counts")
 ax[0, 1].axis('equal')
 ax[0, 1].set_title(r"$k=%s$"%str(k2))
 
+# force a/b to share axes
+ax[0, 0].set_xlim((-5, 5)); ax[0, 0].set_ylim((-5, 5))
+ax[0, 1].set_xlim((-5, 5)); ax[0, 1].set_ylim((-5, 5))
+
 # plot covariance matrix
-sns.heatmap(cov, cmap='Reds', annot=True, ax=ax[0, 2], 
-                xticklabels=[r"$n_1$", r"$n_2$"], yticklabels=[r"$n_1$", r"$n_2$"], cbar=False)
+ax[0, 2].imshow(cov, cmap='Reds', aspect='auto')
+ax[0, 2].set_xticks([0, 1])
+ax[0, 2].set_yticks([0, 1])
+ax[0, 2].set_xticklabels([r"$n_1$", r"$n_2$"])
+ax[0, 2].set_yticklabels([r"$n_1$", r"$n_2$"])
+for c1 in np.arange(cov.shape[0]):
+    for c2 in np.arange(cov.shape[0]):
+        if c1!=c2:
+            c = 'k'
+        else: 
+            c = 'white'
+        ax[0, 2].text(c1, c2, str(cov[c1, c2]), 
+                        ha='center', va='center', color=c)
 ax[0, 2].set_title(r"$\Sigma=\Sigma_a=\Sigma_b$")
 
 # plot shuffled distro for k=k in decoding figure
