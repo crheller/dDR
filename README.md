@@ -5,23 +5,26 @@ dDR is a linear dimensionality reduction method for performing decoding analyses
 ![alt text](figures/final/fig3.png "dDR procedure")
 
 ## Installing
-To install the package, first clone this repository using either `https` or `ssh` protocol. For `https`:
+#### Install editable version with iPython demos and dependencies:
 ```
 git clone https://github.com/crheller/dDR.git
+cd /path/to/dDR
+pip install -e .[demos]
 ```
-or for `ssh`:
+or:
 ```
 git clone git@github.com:crheller/dDR.git
+cd /path/to/dDR
+pip install -e .[demos]
 ```
-Next, `cd` into the root `dDR` directory. For example: `cd <path-to-cloned-repo>/dDR`.
-
-Finally, install the package using `pip`:
+To leave off iPython notebook dependencies, after cloning and switching into `dDR` directory:
 ```
 pip install -e .
 ```
-In order to install the dependencies (`jupyter`) for using the demo ipython notebooks, make sure you install using:
+#### Install base package only
+Alternatively, the base package, without demos, can be installed directly from github:
 ```
-pip install -e .[demos]
+pip install git+https://github.com/crheller/dDR.git
 ```
 
 ## Using dDR
