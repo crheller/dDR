@@ -26,6 +26,8 @@ class dDR:
             Xcenter = np.concatenate((A0, B0), axis=0)
             evals, evecs = np.linalg.eig(np.cov(Xcenter.T))
             evecs = evecs[:, np.argsort(evals)[::-1]]
+            # in case cov is not full rank, which is possible in trial limited regime
+            evecs = np.real(evecs)
             noise_axis = evecs[:, [0]].T
         else:
             noise_axis = self.ddr2_init
