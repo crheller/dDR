@@ -17,7 +17,7 @@ git clone git@github.com:crheller/dDR.git
 cd /path/to/dDR
 pip install -e .[demos]
 ```
-To leave off iPython notebook dependencies, after cloning and switching into `dDR` directory:
+To leave off iPython notebook dependencies (`jupyter`), after cloning and switching into `dDR` directory, just use:
 ```
 pip install -e .
 ```
