@@ -5,7 +5,6 @@ for a large (N=100) neuron population with low-D noise structure.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from matplotlib import cm
 import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
@@ -62,7 +61,7 @@ evecs2 = evecs2[:, idx]
 
 # decay in covariance with samples depends on the covariance value (and indep. var)
 # so, for sake of comparison, find an index that matches across all three datasets
-ccexample = 0.02
+ccexample = 0.04
 cidx = tuple(np.argwhere(abs(cov-ccexample) == np.min(abs(cov-ccexample)))[0])
 c1idx = tuple(np.argwhere(abs(cov1-ccexample) == np.min(abs(cov1-ccexample)))[0])
 c2idx = tuple(np.argwhere(abs(cov2-ccexample) == np.min(abs(cov2-ccexample)))[0])
@@ -150,15 +149,12 @@ ax[2].axhline(1, linestyle='--', color='k')
 ax[2].set_ylim((0, 1.05))
 
 # variance of cov[0, 1], evec similarity (on twinx)
-ax[3].plot(krange, (cov_val2.var(axis=-1) / ccexample) * 100, color=cmap(10))
-ax[3].plot(krange, (cov_val1.var(axis=-1) / ccexample) * 100, color=cmap(30))
-ax[3].plot(krange, (cov_val.var(axis=-1) / ccexample) * 100, color=cmap(60))
-ax[3].axhline(0, linestyle='--', color='k')
-ax[3].set_ylabel(r"Percent error in $\Sigma$"+"\n"+r"$Var(\Sigma_{0, 1}) / \Sigma_{0, 1}$")
+ax[3].plot(krange, cov_val2.var(axis=-1), color=cmap(10))
+ax[3].plot(krange, cov_val1.var(axis=-1), color=cmap(30))
+ax[3].plot(krange, cov_val.var(axis=-1), color=cmap(60))
+ax[3].text(int(len(krange)/2), ax[3].get_ylim()[-1]-0.05, r"$\Sigma_{0,1}=%s$" % str(ccexample))
+ax[3].set_ylabel(r"$Var(\Sigma_{0, 1})$")
 ax[3].set_xlabel(r"Sample size ($k$)")
-ax[3].set_ylim((-25, None))
-ax[3].set_yticks(np.arange(0, 400, 100))
-ax[3].grid('both', alpha=0.5)
 
 f.tight_layout()
 
