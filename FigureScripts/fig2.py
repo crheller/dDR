@@ -62,9 +62,10 @@ evecs2 = evecs2[:, idx]
 
 # decay in covariance with samples depends on the covariance value (and indep. var)
 # so, for sake of comparison, find an index that matches across all three datasets
-cidx = tuple(np.argwhere(abs(cov-0.04) == np.min(abs(cov-0.04)))[0])
-c1idx = tuple(np.argwhere(abs(cov1-0.04) == np.min(abs(cov1-0.04)))[0])
-c2idx = tuple(np.argwhere(abs(cov2-0.04) == np.min(abs(cov2-0.04)))[0])
+ccexample = 0.02
+cidx = tuple(np.argwhere(abs(cov-ccexample) == np.min(abs(cov-ccexample)))[0])
+c1idx = tuple(np.argwhere(abs(cov1-ccexample) == np.min(abs(cov1-ccexample)))[0])
+c2idx = tuple(np.argwhere(abs(cov2-ccexample) == np.min(abs(cov2-ccexample)))[0])
 # get goodness of fit for eigenvector / a single covariance value
 # across sample sizes. For each sample size, draw nSamples to get 
 # sense of the variance in the estimate for each k
@@ -149,9 +150,9 @@ ax[2].axhline(1, linestyle='--', color='k')
 ax[2].set_ylim((0, 1.05))
 
 # variance of cov[0, 1], evec similarity (on twinx)
-ax[3].plot(krange, (cov_val2.var(axis=-1) / 0.04) * 100, color=cmap(10))
-ax[3].plot(krange, (cov_val1.var(axis=-1) / 0.04) * 100, color=cmap(30))
-ax[3].plot(krange, (cov_val.var(axis=-1) / 0.04) * 100, color=cmap(60))
+ax[3].plot(krange, (cov_val2.var(axis=-1) / ccexample) * 100, color=cmap(10))
+ax[3].plot(krange, (cov_val1.var(axis=-1) / ccexample) * 100, color=cmap(30))
+ax[3].plot(krange, (cov_val.var(axis=-1) / ccexample) * 100, color=cmap(60))
 ax[3].axhline(0, linestyle='--', color='k')
 ax[3].set_ylabel(r"Percent error in $\Sigma$"+"\n"+r"$Var(\Sigma_{0, 1}) / \Sigma_{0, 1}$")
 ax[3].set_xlabel(r"Sample size ($k$)")
