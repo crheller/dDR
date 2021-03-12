@@ -16,8 +16,7 @@ np.random.seed(123)
 savefig = False
 fig_name = os.path.join(os.getcwd(), 'figures/fig2.svg')
 
-# Generate high-D data with random noise structure
-nsamps = 200
+# Generate high-D data with random noise structure + one signficant PC
 nUnits = 100
 u = np.zeros(nUnits)
 lv = np.random.normal(0, 1, (nUnits, 1))
@@ -128,10 +127,10 @@ f.colorbar(im, ax=ax[0])
 
 # scree plot for each dataset
 cmap = cm.get_cmap('Greens_r', 100)
-ax[1].plot(evals2 / sum(evals2), '.-', markersize=3, lw=1, color=cmap(10))
-ax[1].plot(evals1 / sum(evals2), '.-', markersize=3, lw=1, color=cmap(30))
-ax[1].plot(evals / sum(evals), '.-', markersize=3, lw=1, color=cmap(60))
-ax[1].set_ylabel(r"Fraction var. exp.")
+ax[1].plot(evals2, '.-', markersize=3, lw=1, color=cmap(10))
+ax[1].plot(evals1, '.-', markersize=3, lw=1, color=cmap(30))
+ax[1].plot(evals, '.-', markersize=3, lw=1, color=cmap(60))
+ax[1].set_ylabel(r"Var. explained")
 ax[1].set_xlabel(r"Principal Component ($\mathbf{e}_1$ - $\mathbf{e}_N$)")
 
 ax[2].plot(krange, e1_sim2.mean(axis=-1), color=cmap(10))

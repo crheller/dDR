@@ -24,10 +24,8 @@ def compute_dprime(A, B, diag=False, wopt=None):
         evec_sim: similarity of first eigenvector between the two stimuli, A and B
         dU: <A> - <B>
     """
-    pinv = False
-    if (A.shape[0] > A.shape[1]) & (wopt is None):
-        pinv = True
-        log.info("Number of dimensions greater than number of observations. Using pseudo-inverse.")
+    if (A.shape[0] > (A.shape[1] + B.shape[1])) & (wopt is None):
+        log.warning("Number of dimensions greater than number of observations. Unstable performance!")
 
     if A.shape[0] != B.shape[0]:
         raise ValueError("Number of dimensions do not match between conditions")
@@ -41,7 +39,7 @@ def compute_dprime(A, B, diag=False, wopt=None):
         dprime, wopt, evals, evecs, evec_sim, dU = _dprime_diag(A, B)
 
     else:
-        dprime, wopt, evals, evecs, evec_sim, dU = _dprime(A, B, wopt=wopt, pinv=pinv)
+        dprime, wopt, evals, evecs, evec_sim, dU = _dprime(A, B, wopt=wopt)
 
     dprime_results = {
         'dprimeSquared': dprime,
@@ -70,7 +68,7 @@ def _dprime_single_dim(A, B):
         return num / den
 
 
-def _dprime(A, B, wopt=None, pinv=False):
+def _dprime(A, B, wopt=None):
     """
     See Rumyantsev et. al 2020, Nature for nice derivation
     """
@@ -114,10 +112,7 @@ def _dprime(A, B, wopt=None, pinv=False):
                 evecs = np.nan * np.ones((A.shape[0], A.shape[0]))
 
         else:
-            if pinv:
-                inv = np.linalg.pinv(usig)
-            else:
-                inv = np.linalg.inv(usig)
+            inv = np.linalg.inv(usig)
             wopt = inv @ u_vec.T
             dp2 = np.matmul(u_vec, wopt)[0][0]
 

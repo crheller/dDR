@@ -49,6 +49,7 @@ class dDR:
             # find n additional axes, orthogonal to dDR plane
             evals, evecs = np.linalg.eig(np.cov(Xresidual.T))
             evecs = evecs[:, np.argsort(evals)[::-1]]
+            evecs = np.real(evecs)
             noise_weights = evecs[:, :self.n_additional_axes].T
             weights = np.concatenate((weights, noise_weights), axis=0)
 
