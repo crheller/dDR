@@ -7,7 +7,7 @@ import logging
 
 log = logging.getLogger()
 
-def compute_dprime(A, B, diag=False, wopt=None):
+def compute_dprime(A, B, diag=False, wopt=None, suppress_log=False):
     """
     Compute discriminability between matrix A and matrix B
     where both are shape N neurons X N reps.
@@ -25,7 +25,8 @@ def compute_dprime(A, B, diag=False, wopt=None):
         dU: <A> - <B>
     """
     if (A.shape[0] > (A.shape[1] + B.shape[1])) & (wopt is None):
-        log.warning("Number of dimensions greater than number of observations. Unstable performance!")
+        if not suppress_log:
+            log.warning("Number of dimensions greater than number of observations. Unstable performance!")
 
     if A.shape[0] != B.shape[0]:
         raise ValueError("Number of dimensions do not match between conditions")

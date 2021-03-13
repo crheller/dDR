@@ -9,7 +9,7 @@ def generate_full_rank_cov(lvs, cov_noise):
     Force positive semi-definite
     """
     cov = generate_low_rank_cov(lvs) + cov_noise
-    return cov.dot(cov.T)
+    return cov #cov.dot(cov.T)
 
 def generate_low_rank_cov(lvs):
     """
