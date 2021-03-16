@@ -1,10 +1,21 @@
 """
-Remaking figure 5 with new noise generation tools, and adding PCA
-"""
+Remaking figure 5 in a slightly new way, also using new noise generation tools, and adding PCA.
 
-"""
-Information limiting correlations. Information saturates due to small,
-information limiting covariance.
+Don't *think* we need to do small vs. large trial numbers here. Can just do small(ish) and show
+that information still saturates when noise aligned (can cite lots of stuff) but increases linearly 
+when not aligned. Same eigenspectrum in each case. (use 1/f cov matrix as in fig 4)
+
+Interesting comparison point... when information limiting corr. are BIG, PCA can find them quickly, even if dU
+is small. But, when information limiting are small and/or dU is small relative to noise, 
+PCA really struggles, while dDR does not.
+
+For figure:
+    information limiting vs. non information limiting (linear vs. saturate) -- pretty big dU, so PCA does okay.
+    Then, make small information limiting dim and small dU -- PCA should fail, while dDR is fine.
+    plot scree plots as scatter with color indicating the alignment with the coding dimension, delta mu
+    
+# 1000s of trials in averbeck study x ~500 neurons, so this would show don't need that. 
+# they had weak correlations -- mean 0.005, sd=0.069
 """
 from dDR.utils.decoding import compute_dprime
 import dDR.utils.surrogate_helpers as sh
@@ -25,78 +36,75 @@ savefig = False
 fig_name = os.path.join(os.getcwd(), 'figures/fig5a.svg')
 
 # data/sampling params
-Ndim = 1000
+nUnits = 1000
 maxDim = 1000
-ksmall = 500
-klarge = 10000
+k = 100
 step = 200  #50
 RandSubsets = 10 #50
 
 n_subsets = np.append([2], np.arange(step, maxDim, step))
 
 # define mean response to each stimulus
-u1 = np.random.normal(4, 0.25, Ndim)
-u2 = np.random.normal(4, 0.25, Ndim)
+duvar = 0.5
+u1 = np.random.normal(4, duvar, Ndim)
+u2 = np.random.normal(4, duvar, Ndim)
 u = np.stack((u1, u2))
 
-# make two dimensional noise:
-# one large dim ~orthogonal to dU and one smaller dim ~ parallel to dU
+# make the covariance matrices
 dU = u[[1], :] - u[[0], :]
 dU = dU / np.linalg.norm(dU)
 
+# with information limiting noise
 lv = dU.T
-evecs = np.concatenate([sh.generate_lv_loading(Ndim, mean_loading=0, variance=1, mag=1) for i in range(Ndim-1)], axis=1)
-evecs = np.concatenate((lv, evecs), axis=1)
-evecs = sh.orthonormal(evecs)
-evecs *= 15
+evecsA = np.concatenate([sh.generate_lv_loading(Ndim, mean_loading=0, variance=1, mag=1) for i in range(nUnits-1)], axis=1)
+evecsA = np.concatenate((lv, evecsA), axis=1)
+evecsA = sh.orthonormal(evecsA)
+evecsA *= 10
+svs = 1 / np.arange(1, Ndim+1)**(1/2)
+svs[0] = svs[1] # bump information limiting noise to a smaller dimension (e.g. Rumyantsev, Kafashan)
+svs[1] = 1
+covlim = sh.generate_full_rank_cov(evecsA * svs)
 
-svs = np.append(0.2, np.append(1, 0.2 / np.arange(3, Ndim+1)**(1/2)))
+# without information limiting noise
+evecs = np.concatenate([sh.generate_lv_loading(nUnits, mean_loading=0, variance=1, mag=1) for i in range(nUnits)], axis=1)
+evecs = sh.orthonormal(evecs)
+evecs *= 10
+svs = 1 / np.arange(1, Ndim+1)**(1/2)
 cov = sh.generate_full_rank_cov(evecs * svs)
 
-# ========================================== low trial number example ============================================
-Ntrials = ksmall
-
-# simulate full data matrix
-_X = np.random.multivariate_normal(np.zeros(Ndim), cov, Ntrials)
-X1 = _X + u[0, :]
-X2 = _X + u[1, :]
+# ========================================== subsample neurons ============================================
+# simulate full data matrix w/o information limiting corr.
+X_raw = np.random.multivariate_normal(np.zeros(nUnits), cov, k)
+X1 = X_raw + u[0, :]
+X2 = X_raw + u[1, :]
 X_raw = np.stack((X1, X2)).transpose([-1, 1, 0])
-
-# add random noise to data matrix
-X_raw += np.random.normal(0, 0.5, X_raw.shape)
-
-# get evals for raw data
-evals_ksmall, evecs_ksmall = np.linalg.eig(np.cov(X_raw[:, :, 0]))
-idx = np.argsort(evals_ksmall)[::-1]
-evals_ksmall = evals_ksmall[idx]
-evecs_ksmall = evecs_ksmall[:, idx]
+# with information limiting corr.
+Xlim = np.random.multivariate_normal(np.zeros(nUnits), covlim, k)
+X1 = Xlim + u[0, :]
+X2 = Xlim + u[1, :]
+Xlim = np.stack((X1, X2)).transpose([-1, 1, 0])
 
 # get est/val indexes (can be the same for each subset of neurons)
 eidx = np.random.choice(range(X_raw.shape[1]), int(X_raw.shape[1]/2), replace=False)
 tidx = np.array(list(set(np.arange(X_raw.shape[1])).difference(set(eidx))))
-dp_ddr_ksmall = []
-dp_full_ksmall = []
-dp_pca_ksmall = []
+dp_ddr_lim = []
+dp_pca_lim = []
+dp_ddr = []
+dp_pca = []
 for nset in n_subsets:
     print('nset: {}'.format(nset))
-    _dp_full = []
+    _dp_ddr_lim = []
+    _dp_pca_lim = []
     _dp_ddr = []
     _dp_pca = []
     for ii in range(RandSubsets):
         # choose random subset of neurons
         neurons = np.random.choice(np.arange(0, Ndim), nset, replace=False)
+
+        # w/o information limiting correlations
         X = X_raw[neurons, :, :]
         Xest = X[:, eidx]
         Xval = X[:, tidx]
-
-        # full rank data
-        try:
-            r = compute_dprime(Xest[:, :, 0], Xest[:, :, 1])
-            r = compute_dprime(Xval[:, :, 0], Xval[:, :, 1], wopt=r.wopt)
-            _dp_full.append(r.dprimeSquared)
-        except ValueError:
-            # not enough reps
-            _dp_full.append(np.nan)
 
         # dDR
         ddr = dDR()
@@ -123,61 +131,11 @@ for nset in n_subsets:
         r = compute_dprime(Xval_pca1.T, Xval_pca2.T, wopt=r.wopt)
 
         _dp_pca.append(r.dprimeSquared)
-    
-    dp_ddr_ksmall.append(_dp_ddr)
-    dp_pca_ksmall.append(_dp_pca)
-    dp_full_ksmall.append(_dp_full)
 
-dp_ddr_ksmall = np.stack(dp_ddr_ksmall)
-dp_pca_ksmall = np.stack(dp_pca_ksmall)
-dp_full_ksmall = np.stack(dp_full_ksmall)
-
-# ========================================== high trial number example ============================================
-Ntrials = klarge
-
-# simulate full data matrix
-_X = np.random.multivariate_normal(np.zeros(Ndim), cov, Ntrials)
-X1 = _X + u[0, :]
-X2 = _X + u[1, :]
-X_raw = np.stack((X1, X2)).transpose([-1, 1, 0])
-
-# add random noise to data matrix
-X_raw += np.random.normal(0, 0.5, X_raw.shape)
-
-# get evals for raw data
-evals_klarge, evecs_klarge = np.linalg.eig(np.cov(X_raw[:, :, 0]))
-idx = np.argsort(evals_klarge)[::-1]
-evals_klarge = evals_klarge[idx]
-evecs_klarge = evecs_klarge[:, idx]
-
-n_subsets = np.append([2], np.arange(step, maxDim, step))
-
-# get est/val indexes (can be the same for each subset of neurons)
-eidx = np.random.choice(range(X_raw.shape[1]), int(X_raw.shape[1]/2), replace=False)
-tidx = np.array(list(set(np.arange(X_raw.shape[1])).difference(set(eidx))))
-dp_ddr_klarge = []
-dp_pca_klarge = []
-dp_full_klarge = []
-for nset in n_subsets:
-    print('nset: {}'.format(nset))
-    _dp_full = []
-    _dp_ddr = []
-    _dp_pca = []
-    for ii in range(RandSubsets):
-        # choose random subset of neurons
-        neurons = np.random.choice(np.arange(0, Ndim), nset, replace=False)
-        X = X_raw[neurons, :, :]
+        # with information limiting correlations
+        X = Xlim[neurons, :, :]
         Xest = X[:, eidx]
         Xval = X[:, tidx]
-
-        # full rank data
-        try:
-            r = compute_dprime(Xest[:, :, 0], Xest[:, :, 1])
-            r = compute_dprime(Xval[:, :, 0], Xval[:, :, 1], wopt=r.wopt)
-            _dp_full.append(r.dprimeSquared)
-        except ValueError:
-            # not enough reps
-            _dp_full.append(np.nan)
 
         # dDR
         ddr = dDR()
@@ -190,8 +148,8 @@ for nset in n_subsets:
         r = compute_dprime(Xest_ddr1.T, Xest_ddr2.T)
         r = compute_dprime(Xval_ddr1.T, Xval_ddr2.T, wopt=r.wopt)
 
-        _dp_ddr.append(r.dprimeSquared)
-        
+        _dp_ddr_lim.append(r.dprimeSquared)
+
         # PCA
         pca = PCA(n_components=2)
         pca.fit(np.concatenate((Xest[:, :, 0].T, Xest[:, :, 1].T), axis=0))
@@ -203,15 +161,18 @@ for nset in n_subsets:
         r = compute_dprime(Xest_pca1.T, Xest_pca2.T)
         r = compute_dprime(Xval_pca1.T, Xval_pca2.T, wopt=r.wopt)
 
-        _dp_pca.append(r.dprimeSquared)
-    
-    dp_ddr_klarge.append(_dp_ddr)
-    dp_pca_klarge.append(_dp_pca)
-    dp_full_klarge.append(_dp_full)
+        _dp_pca_lim.append(r.dprimeSquared)
 
-dp_ddr_klarge = np.stack(dp_ddr_klarge)
-dp_pca_klarge = np.stack(dp_pca_klarge)
-dp_full_klarge = np.stack(dp_full_klarge)
+    
+    dp_ddr_lim.append(_dp_ddr_lim)
+    dp_pca_lim.append(_dp_pca_lim)
+    dp_ddr.append(_dp_ddr)
+    dp_pca.append(_dp_pca)
+
+dp_ddr_lim = np.stack(dp_ddr_lim)
+dp_pca_lim = np.stack(dp_pca_lim)
+dp_ddr = np.stack(dp_ddr)
+dp_pca = np.stack(dp_pca)
 
 # =========================================================== plot results ===========================================================
 
@@ -253,6 +214,8 @@ ax[0, 1].plot(idx, (evals_klarge / sum(evals_klarge))[idx], 'o', color='k', mark
 ax[0, 1].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
 ax[0, 1].set_ylabel("Fraction var. explained")
 ax[0, 1].set_title("Scree plot")
+ax[0, 1].set_xscale('log')
+ax[0, 1].set_yscale('log')
 
 ax[0, 2].plot(abs(evecs_klarge.T.dot(dU.T)), color='grey')
 ax[0, 2].plot(idx, (abs(evecs_klarge.T.dot(dU.T)))[idx], 'o', color='k', markersize=3)
@@ -285,6 +248,8 @@ ax[1, 1].plot(idx, (evals_ksmall / sum(evals_ksmall))[idx], 'o', color='k', mark
 ax[1, 1].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
 ax[1, 1].set_ylabel("Fraction var. explained")
 ax[1, 1].set_title("Scree plot")
+ax[1, 1].set_xscale('log')
+ax[1, 1].set_yscale('log')
 
 ax[1, 2].plot(abs(evecs_ksmall.T.dot(dU.T)), color='grey')
 ax[1, 2].plot(idx, (abs(evecs_ksmall.T.dot(dU.T)))[idx], 'o', color='k', markersize=3)
