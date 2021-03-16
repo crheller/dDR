@@ -64,7 +64,7 @@ cov1f = sh.generate_full_rank_cov(evecs * svs)
 
 # for different k, generate nSamples of the data, split into 50/50 est/val and compute the mean val set d-prime
 nSamples = 100
-krange = np.arange(10, 310, 10) #np.arange(10, 510, 10)
+krange = np.arange(10, 310, 100) #np.arange(10, 510, 10)
 krange = np.append(krange, 10000)
 d_full = {
     'ind': [],

@@ -21,7 +21,7 @@ evecs = np.concatenate([sh.generate_lv_loading(N, mean_loading=0, variance=1, ma
 evecs = sh.orthonormal(evecs) * 7
 
 # step 2 - Design eigenspectrum (scale each dimension to shape noise)
-evs = 1 / np.arange(1, N+1)**(1/2)
+evs = 0.5 / np.arange(1, N+1)**(1/2)
 ind = np.random.normal()
 # step 3 - scale evecs
 # scale correlated components
