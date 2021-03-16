@@ -33,14 +33,14 @@ spike_noise = 0.5
 # generate full rank set of eigenvectors, so that we can control total variance
 evecs = np.concatenate([sh.generate_lv_loading(nUnits, mean_loading=u1-u2, variance=1, mag=1) for i in range(nUnits)], axis=1)
 evecs = sh.orthonormal(evecs)
-evecs *= 7
+evecs *= 3
 
 # generate another set, with the first PC~perfectly aligned to signal
 lv = sh.generate_lv_loading(nUnits, mean_loading=u1-u2, variance=0.1, mag=1) 
 evecsA = np.concatenate([sh.generate_lv_loading(nUnits, mean_loading=u1-u2, variance=1, mag=1) for i in range(nUnits-1)], axis=1)
 evecsA = np.concatenate((lv, evecsA), axis=1)
 evecsA = sh.orthonormal(evecsA)
-evecsA *= 7
+evecsA *= 3
 
 # DATASET 1: independent noise (diag cov matrix)
 covind = np.zeros(evecs.shape)
@@ -54,7 +54,7 @@ cov1 = sh.generate_full_rank_cov(evecs * svs)
 svs = np.append(1, 0.3 / np.arange(2, nUnits+1)**(1/2))
 cov1a = sh.generate_full_rank_cov(evecsA * svs)
 
-# DATASET 4:  2-D noise
+# DATASET 4:  2-D noise, with smaller dimension aligned with dU
 svs = np.append(1, np.append(0.5, 0.2 / np.arange(3, nUnits+1)**(1/2)))
 cov2 = sh.generate_full_rank_cov(evecs * svs)
 
@@ -231,7 +231,7 @@ d_sig = {k: np.stack(d_sig[k]) for k in d_sig.keys()}
 # plot results 
 f, ax = plt.subplots(3, 5, figsize=(10, 6))
 xpos = [0, 1, 2, 3, 4]
-eval_lim = (10**-2.5, 0.3)
+eval_lim = (10**-3, 0.5)
 for tit, dim, x in zip(['Ind. Noise', '1-D', '1-D aligned', '2-D', '1/f'], d_full.keys(), xpos):
     norm = np.nanmax(np.concatenate([d_ddr[dim].mean(axis=1), d_full[dim].mean(axis=1)]))
     #norm = 1
@@ -285,6 +285,10 @@ for tit, dim, x in zip(['Ind. Noise', '1-D', '1-D aligned', '2-D', '1/f'], d_ful
                         yerr=d_full_plot.std(axis=1)[-1], capsize=3, marker='.', color='grey')
 
     ax[1, x].axvline(nUnits, label=r"$k=N$", linestyle='--', color='grey')
+    # plot peak d-prime
+    ax[1, x].axhline(1, linestyle='-', color='grey')
+    mp = int(krange[-2]/2)
+    ax[1, x].text(mp, 1.05, r"$d'^2_{peak}=%s$"%str(round(d_full[dim].mean(axis=1)[-1], 3)), ha='center', va='center')
 
     ax[1, x].set_xticks(np.append(krange[::4], krange[-2]+(2*np.diff(krange)[0])))
     ax[1, x].set_xticklabels(np.append(krange[::4], krange[-1]))
@@ -316,6 +320,9 @@ for tit, dim, x in zip(['Ind. Noise', '1-D', '1-D aligned', '2-D', '1/f'], d_ful
     ax[2, x].set_ylabel(r"cross-validated $d'^2$"+"\n(norm. to peak)")
     ax[2, x].set_xlabel(r'Sample size ($k$)')
     ax[2, x].set_ylim((0, 1.2))
+    mp = int(krange[-2]/2)
+    ax[2, x].axhline(1, linestyle='-', color='grey')
+    ax[2, x].text(mp, 1.05, r"$d'^2_{peak}=%s$"%str(round(d_full[dim].mean(axis=1)[-1], 3)), ha='center', va='center')
 
     f.tight_layout()
 

@@ -18,7 +18,7 @@ u = np.random.normal(4, 0.25, (N, 1))
 # generate covariance matrix
 # step 1 - orthonormal basis
 evecs = np.concatenate([sh.generate_lv_loading(N, mean_loading=0, variance=1, mag=1) for n in range(N)], axis=1)
-evecs = sh.orthonormal(evecs) * 7
+evecs = sh.orthonormal(evecs) * 3
 
 # step 2 - Design eigenspectrum (scale each dimension to shape noise)
 evs = 1 / np.arange(1, N+1)**(1/2)
@@ -30,12 +30,15 @@ sevecs = evecs * evs
 
 # step 4 - generate cov matrix with outer product of evecs (inner product would give identity)
 cov = sevecs.dot(sevecs.T)
+ind = np.ones(cov.shape)
+#np.fill_diagonal(ind, 10)
+#cov *= ind
 
 # generate stim response data, and add independent noise
-k = 10000 # "trials"
+k = 100 # "trials"
 
 X = np.random.multivariate_normal(u.squeeze(), cov, k)
-X += np.random.normal(0, .5, X.shape)
+#X += np.random.normal(0, .5, X.shape)
 
 # plot the results
 f, ax = plt.subplots(1, 3, figsize=(12, 4))
