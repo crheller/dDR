@@ -1,6 +1,8 @@
 """
 Simualtion of e1 estimation vs. individual covariance element estimation
 for a large (N=100) neuron population with low-D noise structure.
+
+Compare independent noise to 1-D noise to 1/n noise -- extreme, extreme, real-ish?
 """
 import os
 import numpy as np
@@ -19,39 +21,34 @@ fig_name = os.path.join(os.getcwd(), 'figures/fig2.svg')
 # Generate high-D data with random noise structure + one signficant PC
 nUnits = 100
 u = np.zeros(nUnits)
-lv = np.random.normal(0, 1, (nUnits, 1))
-sf = 0.5 # scale lv magnitude
-lv /= np.linalg.norm(lv) # low-dimensional LV
-lv = sf * lv
-cov = lv.dot(lv.T)
-cov += np.random.normal(0, 0.1, cov.shape) # add small amount of random noise
-cov = cov.dot(cov.T) # force positive, semi-definite
+
+# generate full rank set of eigenvectors
+evecsa = np.concatenate([sh.generate_lv_loading(nUnits, mean_loading=0, variance=1, mag=1) for i in range(nUnits)], axis=1)
+evecsa = sh.orthonormal(evecsa)
+evecsa *= 15
+
+# DATASET 1: independent noise (diag cov matrix)
+svs = np.append(1, 0.3 / np.arange(2, nUnits+1)**(1/2))
+cov = np.zeros(evecsa.shape)
+np.fill_diagonal(cov, np.diag(sh.generate_full_rank_cov(evecsa * svs)))
 # Get eigenvalues / eigenvectors of the covariance matrix and sort
 evals, evecs = np.linalg.eig(cov)
 idx = np.argsort(evals)[::-1]
 evals = evals[idx]
 evecs = evecs[:, idx]
 
-# Generate high-D data with low dimensional structure (mag 1)
-sf = 1.5 # scale lv magnitude
-lv /= np.linalg.norm(lv) # low-dimensional LV
-lv = sf * lv
-cov1 = lv.dot(lv.T)
-cov1 += np.random.normal(0, 0.1, cov1.shape) # add small amount of random noise
-cov1 = cov1.dot(cov1.T) # force positive, semi-definite
+# DATASET 2: 1-D noise, not aligned (one big dimension, all others small)
+svs = np.append(1, 0.3 / np.arange(2, nUnits+1)**(1/2))
+cov1 = sh.generate_full_rank_cov(evecsa * svs)
 # Get eigenvalues / eigenvectors of the covariance matrix and sort
 evals1, evecs1 = np.linalg.eig(cov1)
 idx = np.argsort(evals1)[::-1]
 evals1 = evals1[idx]
 evecs1 = evecs1[:, idx]
 
-# Generate high-D data with low dimensional structure (mag2)
-sf = 2 # scale lv magnitude
-lv /= np.linalg.norm(lv)
-lv = sf * lv
-cov2 = lv.dot(lv.T)
-cov2 += np.random.normal(0, 0.1, cov2.shape) # add small amount of random noise
-cov2 = cov2.dot(cov2.T) # force positive, semi-definite
+# DATASET 3: 1/f noise
+svs = .33/np.arange(1, nUnits+1)**(1/2)
+cov2 = sh.generate_full_rank_cov(evecsa * svs)
 # Get eigenvalues / eigenvectors of the covariance matrix and sort
 evals2, evecs2 = np.linalg.eig(cov2)
 idx = np.argsort(evals2)[::-1]
@@ -63,6 +60,7 @@ evecs2 = evecs2[:, idx]
 ccexample = 0.04
 cidx = tuple(np.argwhere(abs(cov-ccexample) == np.min(abs(cov-ccexample)))[0])
 c1idx = tuple(np.argwhere(abs(cov1-ccexample) == np.min(abs(cov1-ccexample)))[0])
+cidx = c1idx
 c2idx = tuple(np.argwhere(abs(cov2-ccexample) == np.min(abs(cov2-ccexample)))[0])
 # get goodness of fit for eigenvector / a single covariance value
 # across sample sizes. For each sample size, draw nSamples to get 
@@ -127,31 +125,37 @@ f.colorbar(im, ax=ax[0])
 
 # scree plot for each dataset
 cmap = cm.get_cmap('Greens_r', 100)
-ax[1].plot(evals2, '.-', markersize=3, lw=1, color=cmap(10))
-ax[1].plot(evals1, '.-', markersize=3, lw=1, color=cmap(30))
-ax[1].plot(evals, '.-', markersize=3, lw=1, color=cmap(60))
-ax[1].set_ylabel(r"Var. explained")
+c1 = 'tab:blue' #cmap(10)
+c2 = 'tab:orange' #cmap(30)
+c3 = 'tab:green' #cmap(60)
+ax[1].plot(np.arange(1, nUnits+1), evals2 / evals2.sum(), '-', markersize=3, lw=2, color=c1, label='1/n')
+ax[1].plot(np.arange(1, nUnits+1), evals1 / evals1.sum(), '-', markersize=3, lw=2, color=c2, label='1-D')
+ax[1].plot(np.arange(1, nUnits+1), evals / evals.sum(), '-', markersize=3, lw=2, color=c3, label='Indep.')
+ax[1].set_xscale('log')
+ax[1].set_yscale('log')
+ax[1].set_ylabel(r"Fraction var. exp.")
 ax[1].set_xlabel(r"Principal Component ($\mathbf{e}_1$ - $\mathbf{e}_N$)")
+ax[1].legend(frameon=False)
 
-ax[2].plot(krange, e1_sim2.mean(axis=-1), color=cmap(10))
+ax[2].plot(krange, e1_sim2.mean(axis=-1), color=c1)
 ax[2].fill_between(krange, e1_sim2.mean(axis=-1)-e1_sim2.std(axis=-1) / np.sqrt(nSamples),
-                            e1_sim2.mean(axis=-1)+e1_sim2.std(axis=-1) / np.sqrt(nSamples), color=cmap(10), alpha=0.5, lw=0)
-ax[2].plot(krange, e1_sim1.mean(axis=-1), color=cmap(30))
+                            e1_sim2.mean(axis=-1)+e1_sim2.std(axis=-1) / np.sqrt(nSamples), color=c1, alpha=0.5, lw=0)
+ax[2].plot(krange, e1_sim1.mean(axis=-1), color=c2)
 ax[2].fill_between(krange, e1_sim1.mean(axis=-1)-e1_sim1.std(axis=-1) / np.sqrt(nSamples),
-                            e1_sim1.mean(axis=-1)+e1_sim1.std(axis=-1) / np.sqrt(nSamples), color=cmap(30), alpha=0.5, lw=0)
-ax[2].plot(krange, e1_sim.mean(axis=-1), color=cmap(60))
+                            e1_sim1.mean(axis=-1)+e1_sim1.std(axis=-1) / np.sqrt(nSamples), color=c2, alpha=0.5, lw=0)
+ax[2].plot(krange, e1_sim.mean(axis=-1), color=c3)
 ax[2].fill_between(krange, e1_sim.mean(axis=-1)-e1_sim.std(axis=-1) / np.sqrt(nSamples),
-                            e1_sim.mean(axis=-1)+e1_sim.std(axis=-1) / np.sqrt(nSamples), color=cmap(60), alpha=0.5, lw=0)
+                            e1_sim.mean(axis=-1)+e1_sim.std(axis=-1) / np.sqrt(nSamples), color=c3, alpha=0.5, lw=0)
 ax[2].set_ylabel("Cosine similarity\n"+r"(True $\mathbf{e}_1$ vs. sampled)")
 ax[2].set_xlabel(r"Sample size ($k$)")
-ax[2].axhline(1, linestyle='--', color='k')
+ax[2].axhline(1, linestyle='--', color='k', zorder=-1)
 ax[2].set_ylim((0, 1.05))
 
 # variance of cov[0, 1], evec similarity (on twinx)
-ax[3].plot(krange, cov_val2.var(axis=-1), color=cmap(10))
-ax[3].plot(krange, cov_val1.var(axis=-1), color=cmap(30))
-ax[3].plot(krange, cov_val.var(axis=-1), color=cmap(60))
-ax[3].text(int(len(krange)/2), ax[3].get_ylim()[-1]-0.05, r"$\Sigma_{0,1}=%s$" % str(ccexample))
+ax[3].plot(krange, cov_val2.var(axis=-1), color=c1)
+ax[3].plot(krange, cov_val1.var(axis=-1), color=c2)
+ax[3].plot(krange, cov_val.var(axis=-1), color=c3)
+ax[3].text(int(len(krange)/2), ax[3].get_ylim()[-1]/2, r"$\Sigma_{0,1}=%s$" % str(ccexample))
 ax[3].set_ylabel(r"$Var(\Sigma_{0, 1})$")
 ax[3].set_xlabel(r"Sample size ($k$)")
 
