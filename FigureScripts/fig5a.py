@@ -9,10 +9,22 @@ Interesting comparison point... when information limiting corr. are BIG, PCA can
 is small. But, when information limiting are small and/or dU is small relative to noise, 
 PCA really struggles, while dDR does not.
 
+I think we can argue 
+    1 - largest noise dims not usually aligned with stim (Rumyantsev)
+    2 - Therefore, interesting comparisons are where dU is large vs small / where noise is aligned / not aligned
+
+
 For figure:
     information limiting vs. non information limiting (linear vs. saturate) -- pretty big dU, so PCA does okay.
     Then, make small information limiting dim and small dU -- PCA should fail, while dDR is fine.
     plot scree plots as scatter with color indicating the alignment with the coding dimension, delta mu
+
+    twinx to show that delta u scales linearly?
+
+    Top, scree plots with color indicating alignment? Or, overlay cos similarity on twinx?
+    Left, ratio of delta mu ** 2 to each eigenvector
+    Grid - dprime over neurons for PCA / dDR. Also dU**2 across neurons with twinx
+    Upper left corner, cartoon with the different features?
     
 # 1000s of trials in averbeck study x ~500 neurons, so this would show don't need that. 
 # they had weak correlations -- mean 0.005, sd=0.069
@@ -44,219 +56,220 @@ RandSubsets = 10 #50
 
 n_subsets = np.append([2], np.arange(step, maxDim, step))
 
-# define mean response to each stimulus
+# define mean response to each stimulus (big difference between classes)
 duvar = 0.5
-u1 = np.random.normal(4, duvar, Ndim)
-u2 = np.random.normal(4, duvar, Ndim)
-u = np.stack((u1, u2))
+u1 = np.random.normal(4, duvar, nUnits)
+u2 = np.random.normal(4, duvar, nUnits)
+ubig = np.stack((u1, u2))
 
-# make the covariance matrices
-dU = u[[1], :] - u[[0], :]
-dU = dU / np.linalg.norm(dU)
+# small difference between classes
+duvar = 0.3
+u1 = np.random.normal(4, duvar, nUnits)
+u2 = np.random.normal(4, duvar, nUnits)
+usmall = np.stack((u1, u2))
 
-# with information limiting noise
-lv = dU.T
-evecsA = np.concatenate([sh.generate_lv_loading(Ndim, mean_loading=0, variance=1, mag=1) for i in range(nUnits-1)], axis=1)
-evecsA = np.concatenate((lv, evecsA), axis=1)
-evecsA = sh.orthonormal(evecsA)
-evecsA *= 10
-svs = 1 / np.arange(1, Ndim+1)**(1/2)
-svs[0] = svs[1] # bump information limiting noise to a smaller dimension (e.g. Rumyantsev, Kafashan)
-svs[1] = 1
-covlim = sh.generate_full_rank_cov(evecsA * svs)
+# ====================== make the covariance matrices / 4 different datasets ============================
+datasets = ['big_orth', 'big_aligned', 'small_orth', 'small_aligned']
+X = {k: None for k in datasets}
+cov = dict.fromkeys(datasets)
+evscale = 10
+inflimdim = 2
+limvar = 0.5 # smaller number = more aligned with dU
 
-# without information limiting noise
+# big / orthogonal
 evecs = np.concatenate([sh.generate_lv_loading(nUnits, mean_loading=0, variance=1, mag=1) for i in range(nUnits)], axis=1)
 evecs = sh.orthonormal(evecs)
-evecs *= 10
-svs = 1 / np.arange(1, Ndim+1)**(1/2)
-cov = sh.generate_full_rank_cov(evecs * svs)
+evecs *= evscale
+svs = 1 / np.arange(1, nUnits+1)**(1/2)
+cov['big_orth'] = sh.generate_full_rank_cov(evecs * svs)
+X_raw = np.random.multivariate_normal(np.zeros(nUnits), cov['big_orth'], k)
+X1 = X_raw + ubig[0, :]
+X2 = X_raw + ubig[1, :]
+X['big_orth']= np.stack((X1, X2)).transpose([-1, 1, 0])
+
+# big / information limiting noise
+lv = sh.generate_lv_loading(nUnits, mean_loading=ubig[0]-ubig[1], variance=limvar, mag=1)
+evecs = np.concatenate([sh.generate_lv_loading(nUnits, mean_loading=0, variance=1, mag=1) for i in range(nUnits-1)], axis=1)
+evecs = np.concatenate((lv, evecs), axis=1)
+evecs = sh.orthonormal(evecs)
+evecs *= evscale
+svs = 1 / np.arange(1, nUnits+1)**(1/2)
+svs[0] = svs[inflimdim] # bump information limiting noise to a slightly smaller dimension (e.g. Rumyantsev, Kafashan)
+svs[inflimdim] = 1
+cov['big_aligned'] = sh.generate_full_rank_cov(evecs * svs)
+X_raw = np.random.multivariate_normal(np.zeros(nUnits), cov['big_aligned'], k)
+X1 = X_raw + ubig[0, :]
+X2 = X_raw + ubig[1, :]
+X['big_aligned']= np.stack((X1, X2)).transpose([-1, 1, 0])
+
+# small / orthogonal
+cov['small_orth'] = cov['big_orth']
+X_raw = np.random.multivariate_normal(np.zeros(nUnits), cov['small_orth'], k)
+X1 = X_raw + usmall[0, :]
+X2 = X_raw + usmall[1, :]
+X['small_orth']= np.stack((X1, X2)).transpose([-1, 1, 0])
+
+# small / information limiting noise
+lv = sh.generate_lv_loading(nUnits, mean_loading=usmall[0]-usmall[1], variance=limvar, mag=1)
+evecs = np.concatenate([sh.generate_lv_loading(nUnits, mean_loading=0, variance=1, mag=1) for i in range(nUnits-1)], axis=1)
+evecs = np.concatenate((lv, evecs), axis=1)
+evecs = sh.orthonormal(evecs)
+evecs *= evscale
+svs = 1 / np.arange(1, nUnits+1)**(1/2)
+svs[0] = svs[inflimdim] # bump information limiting noise to a slightly smaller dimension (e.g. Rumyantsev, Kafashan)
+svs[inflimdim] = 1
+cov['small_aligned'] = sh.generate_full_rank_cov(evecs * svs)
+X_raw = np.random.multivariate_normal(np.zeros(nUnits), cov['small_aligned'], k)
+X1 = X_raw + usmall[0, :]
+X2 = X_raw + usmall[1, :]
+X['small_aligned']= np.stack((X1, X2)).transpose([-1, 1, 0])
+
+# =========================================================================================================
 
 # ========================================== subsample neurons ============================================
-# simulate full data matrix w/o information limiting corr.
-X_raw = np.random.multivariate_normal(np.zeros(nUnits), cov, k)
-X1 = X_raw + u[0, :]
-X2 = X_raw + u[1, :]
-X_raw = np.stack((X1, X2)).transpose([-1, 1, 0])
-# with information limiting corr.
-Xlim = np.random.multivariate_normal(np.zeros(nUnits), covlim, k)
-X1 = Xlim + u[0, :]
-X2 = Xlim + u[1, :]
-Xlim = np.stack((X1, X2)).transpose([-1, 1, 0])
-
-# get est/val indexes (can be the same for each subset of neurons)
-eidx = np.random.choice(range(X_raw.shape[1]), int(X_raw.shape[1]/2), replace=False)
-tidx = np.array(list(set(np.arange(X_raw.shape[1])).difference(set(eidx))))
-dp_ddr_lim = []
-dp_pca_lim = []
-dp_ddr = []
-dp_pca = []
+# get est/val trial indexes (can be the same for each subset of neurons)
+eidx = np.random.choice(range(k), int(k/2), replace=False)
+tidx = np.array(list(set(np.arange(k)).difference(set(eidx))))
+rddr = {k: [] for k in datasets}
+rpca = {k: [] for k in datasets}
 for nset in n_subsets:
     print('nset: {}'.format(nset))
-    _dp_ddr_lim = []
-    _dp_pca_lim = []
-    _dp_ddr = []
-    _dp_pca = []
+    _results = {k: {'pca': [], 'ddr': []} for k in datasets}
     for ii in range(RandSubsets):
         # choose random subset of neurons
-        neurons = np.random.choice(np.arange(0, Ndim), nset, replace=False)
+        neurons = np.random.choice(np.arange(0, nUnits), nset, replace=False)
 
-        # w/o information limiting correlations
-        X = X_raw[neurons, :, :]
-        Xest = X[:, eidx]
-        Xval = X[:, tidx]
+        for dtype in datasets:
+            _X = X[dtype][neurons, :, :]
+            Xest = _X[:, eidx]
+            Xval = _X[:, tidx]
 
-        # dDR
-        ddr = dDR()
-        ddr.fit(Xest[:, :, 0].T, Xest[:, :, 1].T)
-        Xest_ddr1 = ddr.transform(Xest[:, :, 0].T)
-        Xest_ddr2 = ddr.transform(Xest[:, :, 1].T)
-        Xval_ddr1 = ddr.transform(Xval[:, :, 0].T)
-        Xval_ddr2 = ddr.transform(Xval[:, :, 1].T)
+            # dDR
+            ddr = dDR(n_additional_axes=None)
+            ddr.fit(Xest[:, :, 0].T, Xest[:, :, 1].T)
+            Xest_ddr1 = ddr.transform(Xest[:, :, 0].T)
+            Xest_ddr2 = ddr.transform(Xest[:, :, 1].T)
+            Xval_ddr1 = ddr.transform(Xval[:, :, 0].T)
+            Xval_ddr2 = ddr.transform(Xval[:, :, 1].T)
 
-        r = compute_dprime(Xest_ddr1.T, Xest_ddr2.T)
-        r = compute_dprime(Xval_ddr1.T, Xval_ddr2.T, wopt=r.wopt)
+            r = compute_dprime(Xest_ddr1.T, Xest_ddr2.T)
+            r = compute_dprime(Xval_ddr1.T, Xval_ddr2.T, wopt=r.wopt)
 
-        _dp_ddr.append(r.dprimeSquared)
+            _results[dtype]['ddr'].append(r.dprimeSquared)
 
-        # PCA
-        pca = PCA(n_components=2)
-        pca.fit(np.concatenate((Xest[:, :, 0].T, Xest[:, :, 1].T), axis=0))
-        Xest_pca1 = pca.transform(Xest[:, :, 0].T)
-        Xest_pca2 = pca.transform(Xest[:, :, 1].T)
-        Xval_pca1 = pca.transform(Xval[:, :, 0].T)
-        Xval_pca2 = pca.transform(Xval[:, :, 1].T)
+            # PCA
+            pca = PCA(n_components=2)
+            pca.fit(np.concatenate((Xest[:, :, 0].T, Xest[:, :, 1].T), axis=0))
+            Xest_pca1 = pca.transform(Xest[:, :, 0].T)
+            Xest_pca2 = pca.transform(Xest[:, :, 1].T)
+            Xval_pca1 = pca.transform(Xval[:, :, 0].T)
+            Xval_pca2 = pca.transform(Xval[:, :, 1].T)
 
-        r = compute_dprime(Xest_pca1.T, Xest_pca2.T)
-        r = compute_dprime(Xval_pca1.T, Xval_pca2.T, wopt=r.wopt)
+            r = compute_dprime(Xest_pca1.T, Xest_pca2.T)
+            r = compute_dprime(Xval_pca1.T, Xval_pca2.T, wopt=r.wopt)
 
-        _dp_pca.append(r.dprimeSquared)
+            _results[dtype]['pca'].append(r.dprimeSquared)
 
-        # with information limiting correlations
-        X = Xlim[neurons, :, :]
-        Xest = X[:, eidx]
-        Xval = X[:, tidx]
+    for dtype in datasets:
+        rpca[dtype].append(_results[dtype]['pca'])
+        rddr[dtype].append(_results[dtype]['ddr'])
 
-        # dDR
-        ddr = dDR()
-        ddr.fit(Xest[:, :, 0].T, Xest[:, :, 1].T)
-        Xest_ddr1 = ddr.transform(Xest[:, :, 0].T)
-        Xest_ddr2 = ddr.transform(Xest[:, :, 1].T)
-        Xval_ddr1 = ddr.transform(Xval[:, :, 0].T)
-        Xval_ddr2 = ddr.transform(Xval[:, :, 1].T)
-
-        r = compute_dprime(Xest_ddr1.T, Xest_ddr2.T)
-        r = compute_dprime(Xval_ddr1.T, Xval_ddr2.T, wopt=r.wopt)
-
-        _dp_ddr_lim.append(r.dprimeSquared)
-
-        # PCA
-        pca = PCA(n_components=2)
-        pca.fit(np.concatenate((Xest[:, :, 0].T, Xest[:, :, 1].T), axis=0))
-        Xest_pca1 = pca.transform(Xest[:, :, 0].T)
-        Xest_pca2 = pca.transform(Xest[:, :, 1].T)
-        Xval_pca1 = pca.transform(Xval[:, :, 0].T)
-        Xval_pca2 = pca.transform(Xval[:, :, 1].T)
-
-        r = compute_dprime(Xest_pca1.T, Xest_pca2.T)
-        r = compute_dprime(Xval_pca1.T, Xval_pca2.T, wopt=r.wopt)
-
-        _dp_pca_lim.append(r.dprimeSquared)
-
-    
-    dp_ddr_lim.append(_dp_ddr_lim)
-    dp_pca_lim.append(_dp_pca_lim)
-    dp_ddr.append(_dp_ddr)
-    dp_pca.append(_dp_pca)
-
-dp_ddr_lim = np.stack(dp_ddr_lim)
-dp_pca_lim = np.stack(dp_pca_lim)
-dp_ddr = np.stack(dp_ddr)
-dp_pca = np.stack(dp_pca)
+for dtype in datasets:
+    rpca[dtype] = np.stack(rpca[dtype])
+    rddr[dtype] = np.stack(rddr[dtype])
 
 # =========================================================== plot results ===========================================================
+# normalize data for plotting?
+norm = 1
 
-# use full rank data matrix, highest trial number, to determine the approximate "peak" information
-norm1 = np.nanmax(np.concatenate((dp_full_klarge, dp_full_klarge)))
-norm2 = np.nanmax(np.concatenate((dp_ddr_ksmall, dp_ddr_ksmall)))
+f, ax = plt.subplots(3, 3, figsize=(7, 6))
 
-dp_ddr_klarge_plot = dp_ddr_klarge / norm1
-dp_ddr_ksmall_plot = dp_ddr_ksmall / norm2
-dp_full_klarge_plot = dp_full_klarge / norm1
-dp_full_ksmall_plot = dp_full_ksmall / norm2
-dp_pca_klarge_plot = dp_pca_klarge / norm1
-dp_pca_ksmall_plot = dp_pca_ksmall / norm2
+ncomp = np.arange(1, nUnits+1)
 
-f, ax = plt.subplots(2, 3, figsize=(6.8, 4))
+# plot scree (variance explained) plots
+# ortho noise
+du = (usmall[0] - usmall[1])
+du /= np.linalg.norm(du)
+oevals, oevecs = np.linalg.eig(cov['small_orth'])
+idx = np.argsort(oevals)[::-1]
+oevals = oevals[idx]
+oevecs = oevecs[:, idx]
+ax[0, 1].plot(ncomp, oevals / oevals.sum(), '.', color='seagreen')
+ax[0, 1].set_xscale('log'); ax[0, 1].set_yscale('log')
+ax[0, 1].set_xlabel(r"Principal component")
+ax[0, 1].set_ylabel("Fract. noise var. exp.", color='seagreen')
+ax[0, 1].tick_params(axis='y', labelcolor='seagreen')
+ax[0, 1].set_ylim(10**-4, 1)
+ax2 = ax[0, 1].twinx()
+ax2.spines['right'].set_visible(True)
+ax2.plot(ncomp, abs(oevecs.T.dot(du)), '-', color='orchid', zorder=-nUnits-1)
+ax2.set_ylabel(r"Noise-signal alignment", color='orchid')
+ax2.tick_params(axis='y', labelcolor='orchid')
+ax2.set_ylim(0, 1)
 
-# high sample size results
-ax[0, 0].plot(n_subsets, dp_ddr_klarge_plot.mean(axis=-1), label=r"$dDR$", color='tab:blue')
-ax[0, 0].fill_between(n_subsets, dp_ddr_klarge_plot.mean(axis=-1)-dp_ddr_klarge_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         dp_ddr_klarge_plot.mean(axis=-1)+dp_ddr_klarge_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         color='tab:blue', alpha=0.5, lw=0)
-ax[0, 0].plot(n_subsets, dp_pca_klarge_plot.mean(axis=-1), label=r"$PCA$", color='tab:orange')
-ax[0, 0].fill_between(n_subsets, dp_pca_klarge_plot.mean(axis=-1)-dp_pca_klarge_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         dp_pca_klarge_plot.mean(axis=-1)+dp_pca_klarge_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         color='tab:orange', alpha=0.5, lw=0)
-ax[0, 0].plot(n_subsets, dp_full_klarge_plot.mean(axis=-1), label="Full rank data", color='tab:green')
-ax[0, 0].fill_between(n_subsets, dp_full_klarge_plot.mean(axis=-1)-dp_full_klarge_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         dp_full_klarge_plot.mean(axis=-1)+dp_full_klarge_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         color='tab:green', alpha=0.5, lw=0)
-ax[0, 0].set_ylim((-0.1, 1.1))
-ax[0, 0].set_xlabel(r'Number of neurons ($N$)')
-ax[0, 0].set_ylabel(r"cross-validated $d'^2$"+"\n(norm. to peak)")
-ax[0, 0].set_title(r"$N_{tot}=%s$, $k=%s$"%(str(Ndim), str(klarge)))
-ax[0, 0].legend(frameon=False)
+# aligned noise
+aevals, aevecs = np.linalg.eig(cov['small_aligned'])
+idx = np.argsort(aevals)[::-1]
+aevals = aevals[idx]
+aevecs = aevecs[:, idx]
+ax[0, 2].plot(ncomp, aevals / aevals.sum(), '.', color='seagreen')
+ax[0, 2].set_xscale('log'); ax[0, 2].set_yscale('log')
+ax[0, 2].set_xlabel(r"Principal component")
+ax[0, 2].set_ylabel("Fract. noise var. exp.", color='seagreen')
+ax[0, 2].tick_params(axis='y', labelcolor='seagreen')# aligned noise
+ax[0, 2].set_ylim(10**-4, 1)
+ax2 = ax[0, 2].twinx()
+ax2.plot(ncomp, abs(aevecs.T.dot(du)), '-', color='orchid', zorder=-nUnits-1)
+ax2.set_ylabel(r"Noise-signal alignment", color='orchid')
+ax2.tick_params(axis='y', labelcolor='orchid')
+ax2.set_ylim(0, 1)
 
-idx = np.argmax(abs(evecs_klarge.T.dot(dU.T)))
-ax[0, 1].plot(evals_klarge / sum(evals_klarge), color='grey')
-ax[0, 1].plot(idx, (evals_klarge / sum(evals_klarge))[idx], 'o', color='k', markersize=3)
-ax[0, 1].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
-ax[0, 1].set_ylabel("Fraction var. explained")
-ax[0, 1].set_title("Scree plot")
-ax[0, 1].set_xscale('log')
-ax[0, 1].set_yscale('log')
+# plot var(delta mu) vs. var(pc)
+# big delta mu
+du = (ubig[0] - ubig[1])
+du /= np.linalg.norm(du)
+bevals, bevecs = np.linalg.eig(cov['big_orth'])
+idx = np.argsort(bevals)[::-1]
+bevals = bevals[idx]
+bevecs = bevecs[:, idx]
+totvar = X['big_orth'].var(axis=(1,2)).sum()
+duvar = X['big_orth'].reshape(nUnits, -1).T.dot(du).var()
+ax[1, 0].plot(ncomp, bevals / totvar, '.', color='grey', label=r'$PC$s')
+ax[1, 0].axhline(duvar / totvar, color='purple', label=r'$\Delta \mu$')
+ax[1, 0].set_xscale('log'); ax[1, 0].set_yscale('log')
+ax[1, 0].set_xlabel(r"Principal component")
+ax[1, 0].set_ylabel("Fract. total var. exp.")
+ax[1, 0].legend(frameon=False)
+ax[1, 0].set_ylim(10**-4, 1)
 
-ax[0, 2].plot(abs(evecs_klarge.T.dot(dU.T)), color='grey')
-ax[0, 2].plot(idx, (abs(evecs_klarge.T.dot(dU.T)))[idx], 'o', color='k', markersize=3)
-ax[0, 2].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
-ax[0, 2].set_ylabel("Cosine similarity"+"\n"+r"($cos(\theta_{\Delta \mu, e_{n}})$)")
-ax[0, 2].set_title("Signal vs. noise similarity")
-ax[0, 2].set_ylim((-0.1, 1.1))
+# small delta mu
+du = (usmall[0] - usmall[1])
+du /= np.linalg.norm(du)
+sevals, sevecs = np.linalg.eig(cov['small_orth'])
+idx = np.argsort(sevals)[::-1]
+sevals = sevals[idx]
+sevecs = sevecs[:, idx]
+totvar = X['small_orth'].var(axis=(1,2)).sum()
+duvar = X['small_orth'].reshape(nUnits, -1).T.dot(du).var()
+ax[2, 0].plot(ncomp, sevals / totvar, '.', color='grey', label=r'$PC$s')
+ax[2, 0].axhline(duvar / totvar, color='purple', label=r'$\Delta \mu$')
+ax[2, 0].set_xscale('log'); ax[2, 0].set_yscale('log')
+ax[2, 0].set_xlabel(r"Principal component")
+ax[2, 0].set_ylabel("Fract. total var. exp.")
+ax[2, 0].set_ylim(10**-4, 1)
 
-# small sample size results
-ax[1, 0].plot(n_subsets, dp_ddr_ksmall_plot.mean(axis=-1), label=r"$dDR$", color='tab:blue')
-ax[1, 0].fill_between(n_subsets, dp_ddr_ksmall_plot.mean(axis=-1)-dp_ddr_ksmall_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         dp_ddr_ksmall_plot.mean(axis=-1)+dp_ddr_ksmall_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         color='tab:blue', alpha=0.5, lw=0)
-ax[1, 0].plot(n_subsets, dp_pca_ksmall_plot.mean(axis=-1), label=r"$PCA$", color='tab:orange')
-ax[1, 0].fill_between(n_subsets, dp_pca_ksmall_plot.mean(axis=-1)-dp_pca_ksmall_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         dp_pca_ksmall_plot.mean(axis=-1)+dp_pca_ksmall_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         color='tab:orange', alpha=0.5, lw=0)
-ax[1, 0].plot(n_subsets, dp_full_ksmall_plot.mean(axis=-1), label="Full rank data", color='tab:green')
-ax[1, 0].fill_between(n_subsets, dp_full_ksmall_plot.mean(axis=-1)-dp_full_ksmall_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         dp_full_ksmall_plot.mean(axis=-1)+dp_full_ksmall_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         color='tab:green', alpha=0.5, lw=0)
-ax[1, 0].set_ylim((-0.1, 1.1))
-ax[1, 0].set_xlabel(r'Number of neurons ($N$)')
-ax[1, 0].set_ylabel(r"cross-validated $d'^2$"+"\n(norm. to peak)")
-ax[1, 0].set_title(r"$N_{tot}=%s$, $k=%s$"%(str(Ndim), str(ksmall)))
 
-idx = np.argmax(abs(evecs_ksmall.T.dot(dU.T)))
-ax[1, 1].plot(evals_ksmall / sum(evals_ksmall), color='grey')
-ax[1, 1].plot(idx, (evals_ksmall / sum(evals_ksmall))[idx], 'o', color='k', markersize=3)
-ax[1, 1].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
-ax[1, 1].set_ylabel("Fraction var. explained")
-ax[1, 1].set_title("Scree plot")
-ax[1, 1].set_xscale('log')
-ax[1, 1].set_yscale('log')
-
-ax[1, 2].plot(abs(evecs_ksmall.T.dot(dU.T)), color='grey')
-ax[1, 2].plot(idx, (abs(evecs_ksmall.T.dot(dU.T)))[idx], 'o', color='k', markersize=3)
-ax[1, 2].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
-ax[1, 2].set_ylabel("Cosine similarity"+"\n"+r"($cos(\theta_{\Delta \mu, e_{n}})$)")
-ax[1, 2].set_title("Signal vs. noise similarity")
-ax[1, 2].set_ylim((-0.1, 1.1))
+# plot dprime results
+for i, (a, dtype) in enumerate(zip([ax[1, 1], ax[1, 2], ax[2, 1], ax[2, 2]], datasets)):
+    if i == 0:
+        lab1 = r"$PCA$"
+        lab2 = r"$dDR$"
+    
+    a.plot(n_subsets, rddr[dtype].mean(axis=1), lw=2, color='tab:blue', label=lab2)
+    a.plot(n_subsets, rpca[dtype].mean(axis=1), lw=2, color='tab:orange', label=lab1)
+    a.set_xlabel(r"Neurons ($N$)")
+    a.set_ylabel(r"$d'^2$")
+    a.legend(frameon=False)
 
 f.tight_layout()
 
