@@ -53,6 +53,7 @@ maxDim = 1000
 k = 100
 step = 200  #50
 RandSubsets = 10 #50
+ndim = [2, 3, 4, 5, 10, 20, 50]  # for the dimensionality reduction
 
 n_subsets = np.append([2], np.arange(step, maxDim, step))
 
@@ -130,53 +131,56 @@ X['small_aligned']= np.stack((X1, X2)).transpose([-1, 1, 0])
 # get est/val trial indexes (can be the same for each subset of neurons)
 eidx = np.random.choice(range(k), int(k/2), replace=False)
 tidx = np.array(list(set(np.arange(k)).difference(set(eidx))))
-rddr = {k: [] for k in datasets}
-rpca = {k: [] for k in datasets}
+rddr = {k: {k: [] for k in datasets} for k in ndim}
+rpca = {k: {k: [] for k in datasets} for k in ndim}
 for nset in n_subsets:
     print('nset: {}'.format(nset))
-    _results = {k: {'pca': [], 'ddr': []} for k in datasets}
+    _results = {k: {k: {'pca': [], 'ddr': []} for k in datasets} for k in ndim}
     for ii in range(RandSubsets):
         # choose random subset of neurons
         neurons = np.random.choice(np.arange(0, nUnits), nset, replace=False)
-
         for dtype in datasets:
             _X = X[dtype][neurons, :, :]
             Xest = _X[:, eidx]
             Xval = _X[:, tidx]
 
-            # dDR
-            ddr = dDR(n_additional_axes=None)
-            ddr.fit(Xest[:, :, 0].T, Xest[:, :, 1].T)
-            Xest_ddr1 = ddr.transform(Xest[:, :, 0].T)
-            Xest_ddr2 = ddr.transform(Xest[:, :, 1].T)
-            Xval_ddr1 = ddr.transform(Xval[:, :, 0].T)
-            Xval_ddr2 = ddr.transform(Xval[:, :, 1].T)
+            for nd in ndim:
+                # dDR
+                if nd==2: d = None 
+                else: d = nd
+                ddr = dDR(n_additional_axes=d)
+                ddr.fit(Xest[:, :, 0].T, Xest[:, :, 1].T)
+                Xest_ddr1 = ddr.transform(Xest[:, :, 0].T)
+                Xest_ddr2 = ddr.transform(Xest[:, :, 1].T)
+                Xval_ddr1 = ddr.transform(Xval[:, :, 0].T)
+                Xval_ddr2 = ddr.transform(Xval[:, :, 1].T)
 
-            r = compute_dprime(Xest_ddr1.T, Xest_ddr2.T)
-            r = compute_dprime(Xval_ddr1.T, Xval_ddr2.T, wopt=r.wopt)
+                r = compute_dprime(Xest_ddr1.T, Xest_ddr2.T)
+                r = compute_dprime(Xval_ddr1.T, Xval_ddr2.T, wopt=r.wopt)
 
-            _results[dtype]['ddr'].append(r.dprimeSquared)
+                _results[nd][dtype]['ddr'].append(r.dprimeSquared)
 
-            # PCA
-            pca = PCA(n_components=2)
-            pca.fit(np.concatenate((Xest[:, :, 0].T, Xest[:, :, 1].T), axis=0))
-            Xest_pca1 = pca.transform(Xest[:, :, 0].T)
-            Xest_pca2 = pca.transform(Xest[:, :, 1].T)
-            Xval_pca1 = pca.transform(Xval[:, :, 0].T)
-            Xval_pca2 = pca.transform(Xval[:, :, 1].T)
+                # PCA
+                pca = PCA(n_components=nd)
+                pca.fit(np.concatenate((Xest[:, :, 0].T, Xest[:, :, 1].T), axis=0))
+                Xest_pca1 = pca.transform(Xest[:, :, 0].T)
+                Xest_pca2 = pca.transform(Xest[:, :, 1].T)
+                Xval_pca1 = pca.transform(Xval[:, :, 0].T)
+                Xval_pca2 = pca.transform(Xval[:, :, 1].T)
 
-            r = compute_dprime(Xest_pca1.T, Xest_pca2.T)
-            r = compute_dprime(Xval_pca1.T, Xval_pca2.T, wopt=r.wopt)
+                r = compute_dprime(Xest_pca1.T, Xest_pca2.T)
+                r = compute_dprime(Xval_pca1.T, Xval_pca2.T, wopt=r.wopt)
 
-            _results[dtype]['pca'].append(r.dprimeSquared)
+                _results[nd][dtype]['pca'].append(r.dprimeSquared)
+    for nd in ndim:
+        for dtype in datasets:
+            rpca[nd][dtype].append(_results[nd][dtype]['pca'])
+            rddr[nd][dtype].append(_results[nd][dtype]['ddr'])
 
+for nd in ndim:
     for dtype in datasets:
-        rpca[dtype].append(_results[dtype]['pca'])
-        rddr[dtype].append(_results[dtype]['ddr'])
-
-for dtype in datasets:
-    rpca[dtype] = np.stack(rpca[dtype])
-    rddr[dtype] = np.stack(rddr[dtype])
+        rpca[nd][dtype] = np.stack(rpca[nd][dtype])
+        rddr[nd][dtype] = np.stack(rddr[nd][dtype])
 
 # =========================================================== plot results ===========================================================
 # normalize data for plotting?
@@ -260,16 +264,21 @@ ax[2, 0].set_ylim(10**-4, 1)
 
 
 # plot dprime results
-for i, (a, dtype) in enumerate(zip([ax[1, 1], ax[1, 2], ax[2, 1], ax[2, 2]], datasets)):
-    if i == 0:
-        lab1 = r"$PCA$"
-        lab2 = r"$dDR$"
-    
-    a.plot(n_subsets, rddr[dtype].mean(axis=1), lw=2, color='tab:blue', label=lab2)
-    a.plot(n_subsets, rpca[dtype].mean(axis=1), lw=2, color='tab:orange', label=lab1)
-    a.set_xlabel(r"Neurons ($N$)")
-    a.set_ylabel(r"$d'^2$")
-    a.legend(frameon=False)
+cmap1 = cm.get_cmap('viridis', 15)
+cmap2 = cm.get_cmap('inferno', 15)
+for j, nd in enumerate([2, 5, 10]): #ndim):
+    for i, (a, dtype) in enumerate(zip([ax[1, 1], ax[1, 2], ax[2, 1], ax[2, 2]], datasets)):
+        if i == 0:
+            lab1 = r"$PCA$, $n=%s$"%str(nd)
+            lab2 = r"$dDR$, $n=%s$"%str(nd)
+        
+        a.plot(n_subsets, rddr[nd][dtype].mean(axis=1), lw=2, color=cmap1(nd+5), label=lab2)
+        a.plot(n_subsets, rpca[nd][dtype].mean(axis=1), lw=2, color=cmap2(nd+5), label=lab1)
+        #a.legend(frameon=False)
+        if j == 0:
+            a.set_xlabel(r"Neurons ($N$)")
+            a.set_ylabel(r"$d'^2$")
+            
 
 f.tight_layout()
 
