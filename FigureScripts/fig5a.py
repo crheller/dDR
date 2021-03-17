@@ -37,6 +37,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+from matplotlib import cm
 import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
@@ -47,13 +48,21 @@ np.random.seed(123)
 savefig = False
 fig_name = os.path.join(os.getcwd(), 'figures/fig5a.svg')
 
+# parameters to iterate over:
+#   k trials, limiting dim size (which pc), alignment (how aligned the dim is), delta mu (how big is the signal?)
+# For each, cache:
+#   X (the full data), cov (the true cov matrix), u (the true mean responses), d-prime over neuron iterations, dU mag over neuron iterations
+# Two steps:
+#   1) generate the data 2) iterate over subsets of neurons.
+#       * make sure seed is set the same each time for reproducible effects 
+
 # data/sampling params
 nUnits = 1000
 maxDim = 1000
-k = 100
+k = 50
 step = 200  #50
 RandSubsets = 10 #50
-ndim = [2, 3, 4, 5, 10, 20, 50]  # for the dimensionality reduction
+ndim = [2, 3, 4, 5, 10, 25, 30]  # for the dimensionality reduction
 
 n_subsets = np.append([2], np.arange(step, maxDim, step))
 
@@ -147,7 +156,7 @@ for nset in n_subsets:
             for nd in ndim:
                 # dDR
                 if nd==2: d = None 
-                else: d = nd
+                else: d = nd-2
                 ddr = dDR(n_additional_axes=d)
                 ddr.fit(Xest[:, :, 0].T, Xest[:, :, 1].T)
                 Xest_ddr1 = ddr.transform(Xest[:, :, 0].T)
@@ -264,16 +273,16 @@ ax[2, 0].set_ylim(10**-4, 1)
 
 
 # plot dprime results
-cmap1 = cm.get_cmap('viridis', 15)
-cmap2 = cm.get_cmap('inferno', 15)
-for j, nd in enumerate([2, 5, 10]): #ndim):
+cmap1 = cm.get_cmap('Blues', 40)
+cmap2 = cm.get_cmap('Oranges', 40)
+for j, nd in enumerate(ndim):
     for i, (a, dtype) in enumerate(zip([ax[1, 1], ax[1, 2], ax[2, 1], ax[2, 2]], datasets)):
         if i == 0:
             lab1 = r"$PCA$, $n=%s$"%str(nd)
             lab2 = r"$dDR$, $n=%s$"%str(nd)
         
-        a.plot(n_subsets, rddr[nd][dtype].mean(axis=1), lw=2, color=cmap1(nd+5), label=lab2)
-        a.plot(n_subsets, rpca[nd][dtype].mean(axis=1), lw=2, color=cmap2(nd+5), label=lab1)
+        a.plot(n_subsets, np.nanmean(rddr[nd][dtype], axis=1), lw=2, color=cmap1(nd+10), label=lab2)
+        a.plot(n_subsets, np.nanmean(rpca[nd][dtype], axis=1), lw=1, color=cmap2(nd+10), label=lab1)
         #a.legend(frameon=False)
         if j == 0:
             a.set_xlabel(r"Neurons ($N$)")
