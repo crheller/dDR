@@ -29,9 +29,9 @@ fig_name = os.path.join(os.getcwd(), 'figures/fig5.svg')
 
 # data/sampling params
 nUnits = 1000
-maxDim = 500
+maxDim = 300
 k = 50
-step = 50  #50
+step = 25  #50
 RandSubsets = 50 #50
 ndim = [2] # 2 / 3 / 4 etc. dimensional PCA/dDR
 n_subsets = np.append([2], np.arange(step, maxDim, step))
@@ -156,7 +156,7 @@ for jj, nset in enumerate(n_subsets):
 
                 r = compute_dprime(Xval_pca1.T, Xval_pca2.T)
 
-                results[nd][dtype]['tapca'][jj, ii] = abs(r)
+                results[nd][dtype]['tapca'][jj, ii] = r
 
                 # single trial PCA
                 pca = PCA(n_components=nd)

@@ -34,7 +34,7 @@ def compute_dprime(A, B, diag=False, wopt=None, suppress_log=False):
     if A.shape[0] == 1:
         # single dimension
         dprime = _dprime_single_dim(A, B)
-        return dprime
+        return dprime**2
 
     if diag:
         dprime, wopt, evals, evecs, evec_sim, dU = _dprime_diag(A, B)
