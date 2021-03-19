@@ -35,7 +35,7 @@ step = 5
 krange = np.arange(5, 100, step)
 krange = np.append(krange, 10000)
 ndim = [2] # 2 / 3 / 4 etc. dimensional PCA/dDR
-nSamples = 100
+nSamples = 1000
 
 # small difference between classes
 duvar = 0.5
