@@ -26,16 +26,16 @@ mpl.rcParams['font.size'] = 8
 
 np.random.seed(123)
 
-savefig = True
+savefig = False
 fig_name = os.path.join(os.getcwd(), 'figures/fig6.svg')
 
 # data/sampling params
 nUnits = 200
-step = 5
-krange = np.arange(5, 100, step)
+step = 10
+krange = np.arange(10, 100, step)
 krange = np.append(krange, 10000)
 ndim = [2] # 2 / 3 / 4 etc. dimensional PCA/dDR
-nSamples = 1000
+nSamples = 500
 
 # small difference between classes
 duvar = 0.5
@@ -47,9 +47,9 @@ u = np.stack((u1, u2))
 ind_noise = 0.5
 
 # small / information limiting noise
-evscale = 7
+evscale = 10
 inflimdim = 2
-limvar = 0.4 # smaller number = more aligned with dU
+limvar = 0.7 # smaller number = more aligned with dU
 
 lv = sh.generate_lv_loading(nUnits, mean_loading=u[0]-u[1], variance=limvar, mag=1)
 evecs = np.concatenate([sh.generate_lv_loading(nUnits, mean_loading=0, variance=1, mag=1) for i in range(nUnits-1)], axis=1)

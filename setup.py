@@ -7,9 +7,9 @@ setup(name='dDR',
       author='Charlie Heller',
       author_email='charlieheller95@gmail.com',
       license='MIT',
-      install_requires=['numpy', 'scipy', 'matplotlib'],
+      install_requires=['numpy'],
       extras_require={
-        'demos': ['jupyter']
+        'demos|figures': ['jupyter', 'scipy', 'pickle', 'matplotlib']
       },
       packages=find_packages(include=['dDR', 'dDR.*']),
       zip_safe=False)
