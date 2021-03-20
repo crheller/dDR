@@ -14,7 +14,7 @@
    width="504pt"
    id="svg8282"
    sodipodi:docname="fig5n.svg"
-   inkscape:version="1.0.2 (e86c870, 2021-01-15)">
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)">
   <metadata
      id="metadata8286">
     <rdf:RDF>
@@ -40,9 +40,9 @@
      inkscape:window-height="1016"
      id="namedview8284"
      showgrid="false"
-     inkscape:zoom="1.0275145"
-     inkscape:cx="372.45015"
-     inkscape:cy="221.401"
+     inkscape:zoom="5.8124998"
+     inkscape:cx="393.09848"
+     inkscape:cy="500.69788"
      inkscape:window-x="0"
      inkscape:window-y="27"
      inkscape:window-maximized="1"
@@ -10318,6 +10318,32 @@
        id="path3500" />
   </g>
   <g
+     style="stroke-linecap:butt;stroke-linejoin:round"
+     transform="translate(14.940006,5.019079)"
+     id="PolyCollection_3-5-6">
+    <defs
+       id="defs33352-7">
+      <path
+         style="stroke-linecap:butt;stroke-linejoin:round"
+         inkscape:connector-curvature="0"
+         id="path50231"
+         d="m 225.93583,-333.47616 v 1.15848 l 9.64177,-39.32832 10.04351,-15.18293 10.04351,-3.65252 10.04351,-1.88874 10.04351,-0.26783 10.04351,-2.14636 10.04351,0.24951 10.04351,-1.00852 10.04351,-1.83103 v -2.36571 0 l -10.04351,1.64346 -10.04351,0.93973 -10.04351,-0.36773 -10.04351,0.77231 -10.04351,0.35994 -10.04351,2.17318 -10.04351,2.46335 -10.04351,15.80084 z" />
+    </defs>
+    <g
+       style="stroke-linecap:butt;stroke-linejoin:round"
+       id="g33356-4"
+       clip-path="url(#p2e4aca353e-0)">
+      <use
+         height="100%"
+         width="100%"
+         id="use33354-0"
+         y="432"
+         xlink:href="#mb1c56842eb"
+         x="0"
+         style="fill-opacity:0.5;stroke-linecap:butt;stroke-linejoin:round" />
+    </g>
+  </g>
+  <g
      id="PolyCollection_1"
      transform="translate(16.5,4.5)">
     <defs
@@ -10724,6 +10750,110 @@
      style="fill:none;stroke:#fb0000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:2, 2;stroke-dashoffset:0;stroke-opacity:1"
      d="M 320.81897,108.28393 V 17.057357"
      id="path23730" />
+  <g
+     style="stroke-linecap:butt;stroke-linejoin:round"
+     transform="translate(14.94,4.7172661)"
+     id="line2d_51-8">
+    <path
+       inkscape:connector-curvature="0"
+       id="path33535"
+       style="fill:none;stroke:#000000;stroke-linecap:square;stroke-linejoin:round"
+       d="m 225.93583,99.103077 9.64177,-40.903601 10.04351,-15.491886 10.04351,-3.057933 10.04351,-2.030964 10.04351,-0.313883 10.04351,-1.459335 10.04351,0.308621 10.04351,-0.974125 10.04351,-1.737246"
+       clip-path="url(#p2e4aca353e-1)" />
+    <defs
+       id="defs33538">
+      <path
+         inkscape:connector-curvature="0"
+         style="stroke:#000000;stroke-linecap:butt;stroke-linejoin:round"
+         id="path50164"
+         d="M 0,0.75 C 0.198902,0.75 0.389685,0.670975 0.53033,0.53033 0.670975,0.389685 0.75,0.198902 0.75,0 0.75,-0.198902 0.670975,-0.389685 0.53033,-0.53033 0.389685,-0.670975 0.198902,-0.75 0,-0.75 c -0.198902,0 -0.389685,0.079025 -0.53033,0.21967 C -0.670975,-0.389685 -0.75,-0.198902 -0.75,0 c 0,0.198902 0.079025,0.389685 0.21967,0.53033 C -0.389685,0.670975 -0.198902,0.75 0,0.75 Z" />
+    </defs>
+    <g
+       style="stroke-linecap:butt;stroke-linejoin:round"
+       id="g33560"
+       clip-path="url(#p2e4aca353e-1)">
+      <use
+         height="100%"
+         width="100%"
+         id="use33540"
+         y="99.103081"
+         xlink:href="#md2cad1b038"
+         x="225.93584"
+         style="stroke:#000000;stroke-linecap:butt;stroke-linejoin:round" />
+      <use
+         height="100%"
+         width="100%"
+         id="use33542"
+         y="58.199474"
+         xlink:href="#md2cad1b038"
+         x="235.57761"
+         style="stroke:#000000;stroke-linecap:butt;stroke-linejoin:round" />
+      <use
+         height="100%"
+         width="100%"
+         id="use33544"
+         y="42.707588"
+         xlink:href="#md2cad1b038"
+         x="245.62111"
+         style="stroke:#000000;stroke-linecap:butt;stroke-linejoin:round" />
+      <use
+         height="100%"
+         width="100%"
+         id="use33546"
+         y="39.649658"
+         xlink:href="#md2cad1b038"
+         x="255.66463"
+         style="stroke:#000000;stroke-linecap:butt;stroke-linejoin:round" />
+      <use
+         height="100%"
+         width="100%"
+         id="use33548"
+         y="37.618694"
+         xlink:href="#md2cad1b038"
+         x="265.70813"
+         style="stroke:#000000;stroke-linecap:butt;stroke-linejoin:round" />
+      <use
+         height="100%"
+         width="100%"
+         id="use33550"
+         y="37.30481"
+         xlink:href="#md2cad1b038"
+         x="275.75165"
+         style="stroke:#000000;stroke-linecap:butt;stroke-linejoin:round" />
+      <use
+         height="100%"
+         width="100%"
+         id="use33552"
+         y="35.845474"
+         xlink:href="#md2cad1b038"
+         x="285.79517"
+         style="stroke:#000000;stroke-linecap:butt;stroke-linejoin:round" />
+      <use
+         height="100%"
+         width="100%"
+         id="use33554"
+         y="36.154095"
+         xlink:href="#md2cad1b038"
+         x="295.83865"
+         style="stroke:#000000;stroke-linecap:butt;stroke-linejoin:round" />
+      <use
+         height="100%"
+         width="100%"
+         id="use33556"
+         y="35.17997"
+         xlink:href="#md2cad1b038"
+         x="305.88217"
+         style="stroke:#000000;stroke-linecap:butt;stroke-linejoin:round" />
+      <use
+         height="100%"
+         width="100%"
+         id="use33558"
+         y="33.442726"
+         xlink:href="#md2cad1b038"
+         x="315.92569"
+         style="stroke:#000000;stroke-linecap:butt;stroke-linejoin:round" />
+    </g>
+  </g>
   <g
      id="line2d_78"
      transform="translate(16.5,4.5)">
@@ -26469,134 +26599,6 @@
        style="font-size:8px;stroke-width:0.75">Signal axis (Δ<tspan
    style="font-weight:bold;font-size:8px"
    id="tspan23693">μ</tspan>)</tspan></text>
-  <g
-     id="g50346"
-     transform="translate(-0.942898,-0.61265515)">
-    <g
-       id="line2d_51-8"
-       transform="translate(15.882898,5.3299213)"
-       style="stroke-linecap:butt;stroke-linejoin:round">
-      <path
-         clip-path="url(#p2e4aca353e-1)"
-         d="m 225.93583,99.103077 9.64177,-40.903601 10.04351,-15.491886 10.04351,-3.057933 10.04351,-2.030964 10.04351,-0.313883 10.04351,-1.459335 10.04351,0.308621 10.04351,-0.974125 10.04351,-1.737246"
-         style="fill:none;stroke:#000000;stroke-linecap:square"
-         id="path33535" />
-      <defs
-         id="defs33538">
-        <path
-           d="M 0,0.75 C 0.198902,0.75 0.389685,0.670975 0.53033,0.53033 0.670975,0.389685 0.75,0.198902 0.75,0 0.75,-0.198902 0.670975,-0.389685 0.53033,-0.53033 0.389685,-0.670975 0.198902,-0.75 0,-0.75 c -0.198902,0 -0.389685,0.079025 -0.53033,0.21967 C -0.670975,-0.389685 -0.75,-0.198902 -0.75,0 c 0,0.198902 0.079025,0.389685 0.21967,0.53033 C -0.389685,0.670975 -0.198902,0.75 0,0.75 Z"
-           id="path50164"
-           style="stroke:#000000" />
-      </defs>
-      <g
-         clip-path="url(#p2e4aca353e-1)"
-         id="g33560">
-        <use
-           style="stroke:#000000"
-           x="225.93584"
-           xlink:href="#md2cad1b038"
-           y="99.103081"
-           id="use33540"
-           width="100%"
-           height="100%" />
-        <use
-           style="stroke:#000000"
-           x="235.57761"
-           xlink:href="#md2cad1b038"
-           y="58.199474"
-           id="use33542"
-           width="100%"
-           height="100%" />
-        <use
-           style="stroke:#000000"
-           x="245.62111"
-           xlink:href="#md2cad1b038"
-           y="42.707588"
-           id="use33544"
-           width="100%"
-           height="100%" />
-        <use
-           style="stroke:#000000"
-           x="255.66463"
-           xlink:href="#md2cad1b038"
-           y="39.649658"
-           id="use33546"
-           width="100%"
-           height="100%" />
-        <use
-           style="stroke:#000000"
-           x="265.70813"
-           xlink:href="#md2cad1b038"
-           y="37.618694"
-           id="use33548"
-           width="100%"
-           height="100%" />
-        <use
-           style="stroke:#000000"
-           x="275.75165"
-           xlink:href="#md2cad1b038"
-           y="37.30481"
-           id="use33550"
-           width="100%"
-           height="100%" />
-        <use
-           style="stroke:#000000"
-           x="285.79517"
-           xlink:href="#md2cad1b038"
-           y="35.845474"
-           id="use33552"
-           width="100%"
-           height="100%" />
-        <use
-           style="stroke:#000000"
-           x="295.83865"
-           xlink:href="#md2cad1b038"
-           y="36.154095"
-           id="use33554"
-           width="100%"
-           height="100%" />
-        <use
-           style="stroke:#000000"
-           x="305.88217"
-           xlink:href="#md2cad1b038"
-           y="35.17997"
-           id="use33556"
-           width="100%"
-           height="100%" />
-        <use
-           style="stroke:#000000"
-           x="315.92569"
-           xlink:href="#md2cad1b038"
-           y="33.442726"
-           id="use33558"
-           width="100%"
-           height="100%" />
-      </g>
-    </g>
-    <g
-       id="PolyCollection_3-5-6"
-       transform="translate(15.882904,5.6317342)"
-       style="stroke-linecap:butt;stroke-linejoin:round">
-      <defs
-         id="defs33352-7">
-        <path
-           d="m 225.93583,-333.47616 v 1.15848 l 9.64177,-39.32832 10.04351,-15.18293 10.04351,-3.65252 10.04351,-1.88874 10.04351,-0.26783 10.04351,-2.14636 10.04351,0.24951 10.04351,-1.00852 10.04351,-1.83103 v -2.36571 0 l -10.04351,1.64346 -10.04351,0.93973 -10.04351,-0.36773 -10.04351,0.77231 -10.04351,0.35994 -10.04351,2.17318 -10.04351,2.46335 -10.04351,15.80084 z"
-           id="path50231" />
-      </defs>
-      <g
-         clip-path="url(#p2e4aca353e-0)"
-         id="g33356-4">
-        <use
-           style="fill-opacity:0.5"
-           x="0"
-           xlink:href="#mb1c56842eb"
-           y="432"
-           id="use33354-0"
-           width="100%"
-           height="100%" />
-      </g>
-    </g>
-  </g>
   <g
      id="PolyCollection_6-4-7"
      transform="translate(-10.89246,2.130721)"
