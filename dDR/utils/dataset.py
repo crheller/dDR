@@ -42,4 +42,16 @@ def extract_data(snr=None, cf=None):
     Helper to pull out the spike matrix for a certain set of snrs and/or center frequencies.
 
     Returns a matrix of snr X cf x repetition x neuron x time
+
+    WIP - gets weird bc for CRD003a there are less reps of a couple of stim
     """
+    if type(snrs) is str:
+        snr_dim = 1
+    else:
+        snr_dim = len(snr)
+    if type(cf) is int:
+        cf_dim = 1
+    else:
+        cf_dim = len(cf)
+
+    #spike_matrix = np.zeros((snr_dim, cf_dim, )

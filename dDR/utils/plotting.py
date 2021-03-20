@@ -33,14 +33,15 @@ def plot_stim_pair_dDR(A, B, lab1=None, lab2=None, xlab=r"$dDR_1 (\Delta \mu)$",
     """
     if ax is None:
         _, ax = plt.subplots(1, 1, figsize=(4, 4))
-    
     else:
-        ax.scatter(A[:, 0], A[:, 1], s=s, color=c1, alpha=alpha, lw=0)
-        x, y = compute_ellipse(A[:, 0], A[:, 1])
-        ax.plot(x, y, lw=lw, label=lab1, color=c1)
-        ax.scatter(B[:, 0], B[:, 1], s=s, color=c2, alpha=alpha, lw=0)
-        x, y = compute_ellipse(B[:, 0], B[:, 1])
-        ax.plot(x, y, lw=lw, label=lab2, color=c2)
+        pass
+    
+    ax.scatter(A[:, 0], A[:, 1], s=s, color=c1, alpha=alpha, lw=0)
+    x, y = compute_ellipse(A[:, 0], A[:, 1])
+    ax.plot(x, y, lw=lw, label=lab1, color=c1)
+    ax.scatter(B[:, 0], B[:, 1], s=s, color=c2, alpha=alpha, lw=0)
+    x, y = compute_ellipse(B[:, 0], B[:, 1])
+    ax.plot(x, y, lw=lw, label=lab2, color=c2)
     
     ax.set_xlabel(xlab)
     ax.set_ylabel(ylab)
