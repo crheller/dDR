@@ -18,11 +18,22 @@ mpl.rcParams['axes.spines.top'] = False
 mpl.rcParams['font.size'] = 8
 
 # load data
-data = Dataset().load(name='CRD004a') # CRD002a, CRD003b, CRD004a
+zscore = True
+data = Dataset().load(name='CRD002a') # CRD002a, CRD003b, CRD004a
 
 # get BF
 bfsnr = '-InfdB'
 rnoise_mean = np.stack([d[:, :, data.meta['evokedBins']].sum(axis=-1).mean(axis=(0, 1)) for k, d in data.spikeData[bfsnr].items()])
+bf = data.cfs[np.argmax(rnoise_mean)]
+
+bfsnr = '-InfdB'
+rnoise = np.stack([d[:, :, data.meta['evokedBins']].sum(axis=-1) for k, d in data.spikeData[bfsnr].items()])
+m = rnoise.mean(axis=(0, 1), keepdims=True)
+sd = rnoise.std(axis=(0, 1), keepdims=True)
+rnoise = rnoise - m
+rnoise /= sd
+rnoise = rnoise.mean(axis=1) # mean over trials
+rnoise_mean = rnoise.mean(axis=1) # mean over neurons
 bf = data.cfs[np.argmax(rnoise_mean)]
 
 # for each BF SNR, get d' between it and all other sounds
@@ -36,6 +47,8 @@ for snrbf in data.snrs:
             if (cf!=bf) | (snr!=snrbf):
                 x2 = data.spikeData[snr][cf][:, :, data.meta['evokedBins']].sum(axis=-1)
                 X = np.stack([x1, x2])
+                if zscore:
+                    X = (X - m) / (sd)
                 nUnits = X.shape[-1]
                 nTrials = X.shape[1]
                 eidx = np.random.choice(range(nTrials), int(nTrials/2), replace=False)
