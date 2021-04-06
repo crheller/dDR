@@ -139,7 +139,7 @@ ax[1].plot(np.arange(1, nUnits+1), evals / evals.sum(), '.-', markersize=10, mar
 ax[1].plot(np.arange(1, nUnits+1), evals2 / evals2.sum(), '.-', markersize=10, markerfacecolor='white', lw=1, color=c1, label='1/n')
 ax[1].set_xscale('log')
 ax[1].set_yscale('log')
-ax[1].set_ylabel(r"Fraction var. exp.")
+ax[1].set_ylabel(r"Fraction noise var. exp.")
 ax[1].set_xlabel(r"Principal Component ($\mathbf{e}_1$ - $\mathbf{e}_N$)")
 ax[1].legend(frameon=False)
 ax[1].set_ylim((None, 1.1))
