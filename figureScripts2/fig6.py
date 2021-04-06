@@ -26,8 +26,10 @@ mpl.rcParams['font.size'] = 8
 
 np.random.seed(123)
 
-savefig = False
-fig_name = os.path.join(os.getcwd(), 'figures/fig6a.svg')
+savefig = True
+fig_name = os.path.join(os.getcwd(), 'figures/fig6.svg')
+fig_m1 = os.path.join(os.getcwd(), 'figures/fig6_m1.svg')
+fig_m2 = os.path.join(os.getcwd(), 'figures/fig6_m2.svg')
 
 # some script params
 nSamples = 100 # number of random samples for each sample size
@@ -60,7 +62,7 @@ bf_idx = np.argsort(np.argmax(rnoise, axis=0))
 
 # choose the two stimulus pairs to compare. For both "target detection" and "freq. discrimin", use (-Inf, BF) vs. (XXX, YYY)
 x1k = ('-InfdB', bf)
-x2k = ('0dB', bf)     # "target detection"
+x2k = ('-5dB', bf)     # "target detection"
 obf = data.cfs[bfidx-3]
 x3k = ('-InfdB', obf) # freq discrim, ~1 octave
 
@@ -176,40 +178,65 @@ for cat, spair in zip(['targetDetect', 'freqDiscrim'], [[x1k, x2k], [x1k, x3k]])
             results[cat]['tapca'][ii, jj] = r
 
 # plot projections (scatter plot, marginal on wopt, marginal on dU)
+
+# remove outliers just for visualization
+theta = 1
+c = 'targetDetect'
+gm = np.sqrt(results[c]['x1'][:,0]**2 + results[c]['x1'][:,1]**2)
+x1td = results[c]['x1'][gm<=(np.median(gm)+(theta*np.std(gm)))]
+gm = np.sqrt(results[c]['x2'][:,0]**2 + results[c]['x2'][:,1]**2)
+x2td = results[c]['x2'][gm<=(np.median(gm)+(theta*np.std(gm)))]
+c = 'freqDiscrim'
+gm = np.sqrt(results[c]['x1'][:,0]**2 + results[c]['x1'][:,1]**2)
+x1fd = results[c]['x1'][gm<=(np.median(gm)+(theta*np.std(gm)))]
+gm = np.sqrt(results[c]['x2'][:,0]**2 + results[c]['x2'][:,1]**2)
+x2fd = results[c]['x2'][gm<=(np.median(gm)+(theta*np.std(gm)))]
+
 ms = 5
+bins = np.arange(-10, 10, 1)
 f, ax = plt.subplots(1, 3, figsize=(6, 2), sharex=True)
 
-plot_stim_pair_dDR(results['targetDetect']['x1'], 
-                   results['targetDetect']['x2'], 
+plot_stim_pair_dDR(x1td, 
+                   x2td, 
                    xlab=r'Signal ($\Delta \mu$)',
                    ylab=r"Noise",
                    lw=1,
                    s=ms,
                    ax=ax[0])
-ax[1].hist(results['targetDetect']['x1'][:, 0], histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5)
-ax[1].hist(results['targetDetect']['x2'][:, 0], histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5)
+cent = np.concatenate((x1td[:, 0], x2td[:, 0])).mean()
+ax[1].hist(x1td[:, 0] - cent, histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[1].hist(x2td[:, 0] - cent, histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
 ax[1].set_title(r"$\Delta \mu$ projection")
-ax[2].hist(results['targetDetect']['x1'].dot(results['targetDetect']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5)
-ax[2].hist(results['targetDetect']['x2'].dot(results['targetDetect']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5)
-ax[2].set_title(r"$w_{opt}$ projection")
-
-f, ax = plt.subplots(1, 3, figsize=(6, 2), sharex=True)
-
-plot_stim_pair_dDR(results['freqDiscrim']['x1'], 
-                   results['freqDiscrim']['x2'], 
-                   xlab=r'Signal ($\Delta \mu$)',
-                   ylab=r"Noise",
-                   lw=1,
-                   s=ms,
-                   ax=ax[0])
-ax[1].hist(results['freqDiscrim']['x1'][:, 0], histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5)
-ax[1].hist(results['freqDiscrim']['x2'][:, 0], histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5)
-ax[1].set_title(r"$\Delta \mu$ projection")
-ax[2].hist(results['freqDiscrim']['x1'].dot(results['freqDiscrim']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5)
-ax[2].hist(results['freqDiscrim']['x2'].dot(results['freqDiscrim']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5)
+ax[2].hist(x1td.dot(results['targetDetect']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[2].hist(x2td.dot(results['targetDetect']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
 ax[2].set_title(r"$w_{opt}$ projection")
 
 f.tight_layout()
+
+if savefig:
+    f.savefig(fig_m1)
+
+f, ax = plt.subplots(1, 3, figsize=(6, 2), sharex=True)
+
+plot_stim_pair_dDR(x1fd, 
+                   x2fd, 
+                   xlab=r'Signal ($\Delta \mu$)',
+                   ylab=r"Noise",
+                   lw=1,
+                   s=ms,
+                   ax=ax[0])
+cent = np.concatenate((x1fd[:, 0], x2fd[:, 0])).mean()
+ax[1].hist(x1fd[:, 0] - cent, histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[1].hist(x2fd[:, 0] - cent, histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[1].set_title(r"$\Delta \mu$ projection")
+ax[2].hist(x1fd.dot(results['freqDiscrim']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[2].hist(x2fd.dot(results['freqDiscrim']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[2].set_title(r"$w_{opt}$ projection")
+
+f.tight_layout()
+
+if savefig:
+    f.savefig(fig_m2)
 
 # ========================================================================================================
 # overall figure -- tuning panels / decoding performance
@@ -229,7 +256,7 @@ bfim.imshow(rnoise[:, bf_idx].T, cmap='bwr', aspect='auto', vmin=-2, vmax=2)
 bfim.set_ylabel("Neuron")
 bfim.set_xticks(range(len(data.cfs)))
 bfim.set_xticklabels(data.cfs, rotation=45)
-bfim.set_xlabel('CF')
+bfim.set_xlabel('Noise Center Frequency')
 
 # plot the mean tuning curve over neurons
 ftc.plot(data.cfs, rnoise_mean, '.-', color='k', lw=1, label='-InfdB')
@@ -238,10 +265,10 @@ for snr, col in zip(['-10dB', '-5dB', '0dB'], [cmap(5), cmap(10), cmap(15)]):
     ftc.plot(data.cfs, resp[snr], '.-', color=col, lw=1, label=snr)
 ftc.legend(frameon=False)
 ftc.set_ylabel("Spike count (z-scored)")
-ftc.set_xlabel('CF')
+ftc.set_xlabel('Noise Center Frequency')
 ftc.set_xscale('log')
 
-# performance for "target detection"
+# performance for "decoding"
 for a, c in zip([d1, d2], ['targetDetect', 'freqDiscrim']):
     a.plot(krange[:-1], results[c]['ddr'].mean(axis=1)[:-1], '.-', color='royalblue', label=r"$dDR$")
     a.fill_between(krange[:-1], results[c]['ddr'].mean(axis=1)[:-1] - results[c]['ddr'].std(axis=1)[:-1] / np.sqrt(nSamples),
@@ -259,7 +286,7 @@ for a, c in zip([d1, d2], ['targetDetect', 'freqDiscrim']):
     a.legend(frameon=False)
     a.set_ylabel(r"$d'^2$")
     a.set_xlabel(r"Trials ($k$)")
-    a.set_ylim((0, None))
+    a.set_ylim((np.max([0, a.get_ylim()[1]-6]), None))
 
 ylim = (10**-3, 1)
 for a, c in zip([d1n, d2n], ['targetDetect', 'freqDiscrim']):
@@ -281,15 +308,23 @@ for a, c in zip([d1n, d2n], ['targetDetect', 'freqDiscrim']):
     ax2.set_ylim(0, 1)
 
 # plot projections
-for a, c in zip([p1, p2], ['targetDetect', 'freqDiscrim']):
-    plot_stim_pair_dDR(results[c]['x1'], 
-                    results[c]['x2'], 
-                    xlab=r'Signal ($\Delta \mu$)',
-                    ylab=r"Noise",
-                    lw=1,
-                    s=ms,
-                    ax=a)
-
+for a, c in zip([p1, p2], [[x1td, x2td], [x1fd, x2fd]]):
+    # remove outliers for visualization
+    cent = np.concatenate((c[0][:, 0], c[1][:, 0])).mean()
+    c[0][:, 0] = c[0][:, 0] - cent
+    c[1][:, 0] = c[1][:, 0] - cent
+    plot_stim_pair_dDR(c[0], 
+                       c[1], 
+                       xlab=r'Signal ($\Delta \mu$)',
+                       ylab=r"Noise",
+                       lw=1,
+                       s=ms,
+                       ax=a)
+    a.set_xlim((bins[0], bins[-1]+1))
+    a.set_ylim(a.get_ylim()[0]-2, a.get_ylim()[1]+2)
 f.tight_layout()
+
+if savefig:
+    f.savefig(fig_name)
 
 plt.show()
