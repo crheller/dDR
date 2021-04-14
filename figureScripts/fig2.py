@@ -158,7 +158,7 @@ ax[2].set_xlabel(r"Sample size ($k$)")
 ax[2].axhline(1, linestyle='--', color='k', zorder=-1)
 ax[2].set_ylim((0, 1.05))
 
-# variance of cov[0, 1], evec similarity (on twinx)
+# variance of cov[i, j]
 ax[3].plot(krange, cov_val2.var(axis=-1), color=c1)
 ax[3].plot(krange, cov_val1.var(axis=-1), color=c2)
 ax[3].plot(krange, cov_val.var(axis=-1), color=c3)
