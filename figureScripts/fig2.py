@@ -1,9 +1,11 @@
 """
 Simualtion of e1 estimation vs. individual covariance element estimation
-for a large (N=100) neuron population with low-D noise structure.
+for a N=100 neuron population with low-D noise structure.
 
 Compare independent noise to 1-D noise to 1/n noise -- extreme, extreme, real-ish?
 """
+import dDR.utils.surrogate_helpers as sh
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,17 +20,18 @@ np.random.seed(123)
 savefig = False
 fig_name = os.path.join(os.getcwd(), 'figures/fig2.svg')
 
-# Generate high-D data with random noise structure + one signficant PC
+# Generate high-D data with variable noise structure
 nUnits = 100
 u = np.zeros(nUnits)
 
 # generate full rank set of eigenvectors
-evecsa = np.concatenate([sh.generate_lv_loading(nUnits, mean_loading=0, variance=1, mag=1) for i in range(nUnits)], axis=1)
+evecsa = np.concatenate([sh.generate_lv_loading(nUnits, mean_loading=0.4, variance=1, mag=1) for i in range(nUnits)], axis=1)
 evecsa = sh.orthonormal(evecsa)
-evecsa *= 15
+evecsa *= 10
 
 # DATASET 1: independent noise (diag cov matrix)
 svs = np.append(1, 0.3 / np.arange(2, nUnits+1)**(1/2))
+svs = (svs / sum(svs)) * 10
 cov = np.zeros(evecsa.shape)
 np.fill_diagonal(cov, np.diag(sh.generate_full_rank_cov(evecsa * svs)))
 # Get eigenvalues / eigenvectors of the covariance matrix and sort
@@ -39,6 +42,7 @@ evecs = evecs[:, idx]
 
 # DATASET 2: 1-D noise, not aligned (one big dimension, all others small)
 svs = np.append(1, 0.3 / np.arange(2, nUnits+1)**(1/2))
+svs = (svs / sum(svs)) * 10
 cov1 = sh.generate_full_rank_cov(evecsa * svs)
 # Get eigenvalues / eigenvectors of the covariance matrix and sort
 evals1, evecs1 = np.linalg.eig(cov1)
@@ -46,8 +50,9 @@ idx = np.argsort(evals1)[::-1]
 evals1 = evals1[idx]
 evecs1 = evecs1[:, idx]
 
-# DATASET 3: 1/f noise
-svs = .33/np.arange(1, nUnits+1)**(1/2)
+# DATASET 3: 1/n noise
+svs = 1/np.arange(1, nUnits+1)**(1/2)
+svs = (svs / sum(svs)) * 10
 cov2 = sh.generate_full_rank_cov(evecsa * svs)
 # Get eigenvalues / eigenvectors of the covariance matrix and sort
 evals2, evecs2 = np.linalg.eig(cov2)
@@ -112,7 +117,8 @@ cov_val1 = np.stack(cov_val1)
 cov_val2 = np.stack(cov_val2)
 
 # Make figure
-f, ax = plt.subplots(1, 4, figsize=(7.2, 1.75))
+f, ax = plt.subplots(2, 2, figsize=(4.5, 4))
+ax = ax.flatten()
 
 im = ax[0].imshow(cov2, aspect='auto', cmap='bwr', vmin=-1, vmax=1)
 [s.set_visible(False) for s in ax[0].spines.values()]
@@ -128,14 +134,15 @@ cmap = cm.get_cmap('Greens_r', 100)
 c1 = 'tab:blue' #cmap(10)
 c2 = 'tab:orange' #cmap(30)
 c3 = 'tab:green' #cmap(60)
-ax[1].plot(np.arange(1, nUnits+1), evals2 / evals2.sum(), '-', markersize=3, lw=2, color=c1, label='1/n')
-ax[1].plot(np.arange(1, nUnits+1), evals1 / evals1.sum(), '-', markersize=3, lw=2, color=c2, label='1-D')
-ax[1].plot(np.arange(1, nUnits+1), evals / evals.sum(), '-', markersize=3, lw=2, color=c3, label='Indep.')
+ax[1].plot(np.arange(1, nUnits+1), evals1 / evals1.sum(), '.-', markersize=10, markerfacecolor='white', lw=1, color=c2, label='1-D')
+ax[1].plot(np.arange(1, nUnits+1), evals / evals.sum(), '.-', markersize=10, markerfacecolor='white', lw=1, color=c3, label='Indep.')
+ax[1].plot(np.arange(1, nUnits+1), evals2 / evals2.sum(), '.-', markersize=10, markerfacecolor='white', lw=1, color=c1, label='1/n')
 ax[1].set_xscale('log')
 ax[1].set_yscale('log')
-ax[1].set_ylabel(r"Fraction var. exp.")
+ax[1].set_ylabel(r"Fraction noise var. exp.")
 ax[1].set_xlabel(r"Principal Component ($\mathbf{e}_1$ - $\mathbf{e}_N$)")
 ax[1].legend(frameon=False)
+ax[1].set_ylim((None, 1.1))
 
 ax[2].plot(krange, e1_sim2.mean(axis=-1), color=c1)
 ax[2].fill_between(krange, e1_sim2.mean(axis=-1)-e1_sim2.std(axis=-1) / np.sqrt(nSamples),
@@ -146,7 +153,7 @@ ax[2].fill_between(krange, e1_sim1.mean(axis=-1)-e1_sim1.std(axis=-1) / np.sqrt(
 ax[2].plot(krange, e1_sim.mean(axis=-1), color=c3)
 ax[2].fill_between(krange, e1_sim.mean(axis=-1)-e1_sim.std(axis=-1) / np.sqrt(nSamples),
                             e1_sim.mean(axis=-1)+e1_sim.std(axis=-1) / np.sqrt(nSamples), color=c3, alpha=0.5, lw=0)
-ax[2].set_ylabel("Cosine similarity\n"+r"(True $\mathbf{e}_1$ vs. sampled)")
+ax[2].set_ylabel("Cosine similarity\n"+r"(True $\mathbf{e}_1$ vs. estimated)")
 ax[2].set_xlabel(r"Sample size ($k$)")
 ax[2].axhline(1, linestyle='--', color='k', zorder=-1)
 ax[2].set_ylim((0, 1.05))
@@ -155,8 +162,8 @@ ax[2].set_ylim((0, 1.05))
 ax[3].plot(krange, cov_val2.var(axis=-1), color=c1)
 ax[3].plot(krange, cov_val1.var(axis=-1), color=c2)
 ax[3].plot(krange, cov_val.var(axis=-1), color=c3)
-ax[3].text(int(len(krange)/2), ax[3].get_ylim()[-1]/2, r"$\Sigma_{0,1}=%s$" % str(ccexample))
-ax[3].set_ylabel(r"$Var(\Sigma_{0, 1})$")
+ax[3].text(int(len(krange)/2), ax[3].get_ylim()[-1]/2, r"$\Sigma_{i,j}=%s$" % str(ccexample))
+ax[3].set_ylabel(r"$Var(\hat{\Sigma}_{i, j})$")
 ax[3].set_xlabel(r"Sample size ($k$)")
 
 f.tight_layout()
