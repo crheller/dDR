@@ -23,7 +23,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -46,7 +46,8 @@
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg7076" />
+     inkscape:current-layer="svg7076"
+     inkscape:document-rotation="0" />
   <defs
      id="defs5018">
     <style
@@ -6308,7 +6309,7 @@
        id="tspan10262"
        x="66.320663"
        y="165.29546"
-       style="stroke-width:0.75">Perfect prediction of <tspan
+       style="stroke-width:0.75">Perfect estimate of <tspan
    style="font-weight:bold"
    id="tspan10266">e</tspan><tspan
    style="font-size:65%;baseline-shift:sub"
