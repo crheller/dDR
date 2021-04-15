@@ -16,13 +16,13 @@ Alternatively, you can install the editable version of the code, including the d
 ```
 git clone https://github.com/crheller/dDR.git
 cd /path/to/dDR
-pip install -e .[demos|figures]
+pip install -e .[demos_figures]
 ```
 or:
 ```
 git clone git@github.com:crheller/dDR.git
 cd /path/to/dDR
-pip install -e .[demos|figures]
+pip install -e .[demos_figures]
 ```
 To leave off iPython notebook  and plotting dependencies, after cloning and switching into `dDR` directory, just use:
 ```
