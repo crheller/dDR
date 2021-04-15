@@ -9,7 +9,7 @@ setup(name='dDR',
       license='MIT',
       install_requires=['numpy'],
       extras_require={
-        'demos_figures': ['jupyter', 'seaborn', 'pickle', 'matplotlib']
+        'demos_figures': ['jupyter', 'seaborn', 'pickle5', 'matplotlib']
       },
       packages=find_packages(include=['dDR', 'dDR.*']),
       zip_safe=False)
