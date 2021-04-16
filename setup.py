@@ -7,9 +7,10 @@ setup(name='dDR',
       author='Charlie Heller',
       author_email='charlieheller95@gmail.com',
       license='MIT',
-      install_requires=['numpy'],
+      python_requires='>=3.8.3',
+      install_requires=['numpy', 'matplotlib'],
       extras_require={
-        'demos_figures': ['jupyterlab', 'seaborn', 'pickle5', 'matplotlib']
+        'extras': ['seaborn']
       },
       packages=find_packages(include=['dDR', 'dDR.*']),
       zip_safe=False)
