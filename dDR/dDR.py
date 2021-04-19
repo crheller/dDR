@@ -1,9 +1,19 @@
 import numpy as np
-from sklearn.decomposition import PCA
 
 class dDR:
 
     def __init__(self, ddr2_init=None, n_additional_axes=None):
+        '''
+        Simple dimensionality reduction tool designed for performing neural decoding analysis. 
+        
+        ddr2_init: 
+            If not None, a custom (for example) latent variable axis that you wish to use as your noise axis in the dDR decomposition.
+            Must be a numpy array of shape N neurons x 1
+
+        n_additional_axes:
+            If not None, specifies the number of additional noise dimensions that should be included in the dDR composition. For example
+            n_additional_axes=1 would correspond to a final dDR space with 3 dimensions (a signal axis + 2 noise dimensions).
+        '''
         self.ddr2_init = ddr2_init
         self.n_additional_axes = n_additional_axes
          

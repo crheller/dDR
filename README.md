@@ -5,27 +5,29 @@ dDR is a linear dimensionality reduction method for performing decoding analyses
 ![alt text](figures/final/fig3.png "dDR procedure")
 
 ## Installing
-#### Install editable version with iPython demos and manuscript figure dependencies:
+#### Install base package only
+The base package, without extra dependencies, can be installed directly from github as follows. Installation requires python version `>=3.8.3`
+```
+pip install git+https://github.com/crheller/dDR.git
+```
+
+#### Install editable version with manuscript figure dependencies:
+Alternatively, you can install the editable version of the code, including the dependencies to run the figure scripts.
 ```
 git clone https://github.com/crheller/dDR.git
 cd /path/to/dDR
-pip install -e .[demos|figures]
+pip install -e .[extras]
 ```
 or:
 ```
 git clone git@github.com:crheller/dDR.git
 cd /path/to/dDR
-pip install -e .[demos|figures]
+pip install -e .[extras]
 ```
-To leave off iPython notebook  and plotting dependencies, after cloning and switching into `dDR` directory, just use:
+To leave off extra dependencies, after cloning and switching into `dDR` directory, just use:
 ```
 pip install -e .
 ```
-#### Install base package only
-Alternatively, the base package, without demos, can be installed directly from github:
-```
-pip install git+https://github.com/crheller/dDR.git
-```
 
 ## Using dDR
-For an introduction on using the dDR class for neural decoding, please see the included demo ipython notebook, `dDR_demo.ipynb`
+For an introduction on using the dDR class for neural decoding, please see the included demo ipython notebook, `dDR_demo.ipynb` (also available as an  `html` file for viewing only)

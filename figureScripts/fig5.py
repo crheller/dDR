@@ -1,24 +1,24 @@
 """
-Information limiting correlations. Information saturates due to small,
-information limiting covariance.
-"""
+Real data -- dataset1 (CRD004a)
 
-"""
-Illustrate efficacy of dimensionality reduction techinque in preserving information 
-about small, differential correlations. Also illustrate ability of technique to be 
-robust to overfitting, and work in low trial N regime.
+1) Tuning curves for individual neurons
+2) Population tuning curve
+3) Decoding -- "target" detection
+4) Decoding -- frequency discrimination
+5) Projections of 3/4 in to the dDR / taPCA / stPCA space? Just taPCA / dDR? For the latter, could just use the same plot...
 
-Simulate a population with two noise PCs - one that projects along 
-dU (differential) and another that is orthogonal (randomly).
-Simulate for many (1000s) neurons, then run decoding for different subsets and 
-show that information saturates as neurons are added.
+Summary panels showing ratio of dDR:taPCA, mag(dU), noise alignment across CFs?
 """
 from dDR.utils.decoding import compute_dprime
+from dDR.utils.dataset import Dataset
+from dDR.utils.plotting import plot_stim_pair_dDR
+from dDR.PCA import PCA
 from dDR.dDR import dDR
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-
+from matplotlib import cm
 import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
@@ -28,234 +28,300 @@ np.random.seed(123)
 
 savefig = True
 fig_name = os.path.join(os.getcwd(), 'figures/fig5.svg')
+fig_m1 = os.path.join(os.getcwd(), 'figures/fig5_m1.svg')
+fig_m2 = os.path.join(os.getcwd(), 'figures/fig5_m2.svg')
 
-# data/sampling params
-Ndim = 1000
-maxDim = 1000
-ksmall = 500
-klarge = 10000
-step = 50
-RandSubsets = 50
-var_ratio = 1.2 # pc1 has X times the variance as pc2
-
-u1 = 4
-u2 = 4
-u = np.stack((np.random.poisson(u1, Ndim), np.random.poisson(u2, Ndim)))
-
-# make two dimensional noise:
-# one large dim ~orthogonal to dU and one smaller dim ~ parallel to dU
-dU = u[[1], :] - u[[0], :]
-dU = dU / np.linalg.norm(dU)
-
-diff_cor = dU #+ np.random.normal(0, 0.0001, dU.shape)
-diff_cor = diff_cor / np.linalg.norm(diff_cor) * 1.5
-pc1 = np.random.normal(0, 1, dU.shape)
-pc1 = (pc1 / np.linalg.norm(pc1)) * 2  * var_ratio
-
-evecs = np.concatenate((diff_cor, pc1), axis=0)
-cov = evecs.T.dot(evecs)
-cov += np.random.normal(0, 0.005, cov.shape)
-cov = cov.dot(cov.T)
-
-# ========================================== low trial number example ============================================
-Ntrials = ksmall
-
-# simulate full data matrix
-_X = np.random.multivariate_normal(np.zeros(Ndim), cov, Ntrials)
-X1 = _X + u[0, :]
-X2 = _X + u[1, :]
-X_raw = np.stack((X1, X2)).transpose([-1, 1, 0])
-
-# add random noise to data matrix
-X_raw += np.random.normal(0, 0.5, X_raw.shape)
-
-# get evals for raw data
-evals_ksmall, evecs_ksmall = np.linalg.eig(np.cov(X_raw[:, :, 0]))
-idx = np.argsort(evals_ksmall)[::-1]
-evals_ksmall = evals_ksmall[idx]
-evecs_ksmall = evecs_ksmall[:, idx]
-
-n_subsets = np.append([2], np.arange(step, maxDim, step))
-
-# get est/val indexes (can be the same for each subset of neurons)
-eidx = np.random.choice(range(X_raw.shape[1]), int(X_raw.shape[1]/2), replace=False)
-tidx = np.array(list(set(np.arange(X_raw.shape[1])).difference(set(eidx))))
-dp_ddr_ksmall = []
-dp_full_ksmall = []
-for nset in n_subsets:
-    print('nset: {}'.format(nset))
-    _dp_full = []
-    _dp_ddr = []
-    for ii in range(RandSubsets):
-        # choose random subset of neurons
-        neurons = np.random.choice(np.arange(0, Ndim), nset, replace=False)
-        X = X_raw[neurons, :, :]
-        Xest = X[:, eidx]
-        Xval = X[:, tidx]
-
-        # full rank data
-        try:
-            r = compute_dprime(Xest[:, :, 0], Xest[:, :, 1])
-            r = compute_dprime(Xval[:, :, 0], Xval[:, :, 1], wopt=r.wopt)
-            _dp_full.append(r.dprimeSquared)
-        except ValueError:
-            # not enough reps
-            _dp_full.append(np.nan)
-
-        # dDR
-        ddr = dDR()
-        ddr.fit(Xest[:, :, 0].T, Xest[:, :, 1].T)
-        Xest_ddr1 = ddr.transform(Xest[:, :, 0].T)
-        Xest_ddr2 = ddr.transform(Xest[:, :, 1].T)
-        Xval_ddr1 = ddr.transform(Xval[:, :, 0].T)
-        Xval_ddr2 = ddr.transform(Xval[:, :, 1].T)
-
-        r = compute_dprime(Xest_ddr1.T, Xest_ddr2.T)
-        r = compute_dprime(Xval_ddr1.T, Xval_ddr2.T, wopt=r.wopt)
-
-        _dp_ddr.append(r.dprimeSquared)
-    
-    dp_ddr_ksmall.append(_dp_ddr)
-    dp_full_ksmall.append(_dp_full)
-
-dp_ddr_ksmall = np.stack(dp_ddr_ksmall)
-dp_full_ksmall = np.stack(dp_full_ksmall)
-
-# ========================================== high trial number example ============================================
-Ntrials = klarge
-
-# simulate full data matrix
-_X = np.random.multivariate_normal(np.zeros(Ndim), cov, Ntrials)
-X1 = _X + u[0, :]
-X2 = _X + u[1, :]
-X_raw = np.stack((X1, X2)).transpose([-1, 1, 0])
-
-# add random noise to data matrix
-X_raw += np.random.normal(0, 0.5, X_raw.shape)
-
-# get evals for raw data
-evals_klarge, evecs_klarge = np.linalg.eig(np.cov(X_raw[:, :, 0]))
-idx = np.argsort(evals_klarge)[::-1]
-evals_klarge = evals_klarge[idx]
-evecs_klarge = evecs_klarge[:, idx]
-
-n_subsets = np.append([2], np.arange(step, maxDim, step))
-
-# get est/val indexes (can be the same for each subset of neurons)
-eidx = np.random.choice(range(X_raw.shape[1]), int(X_raw.shape[1]/2), replace=False)
-tidx = np.array(list(set(np.arange(X_raw.shape[1])).difference(set(eidx))))
-dp_ddr_klarge = []
-dp_full_klarge = []
-for nset in n_subsets:
-    print('nset: {}'.format(nset))
-    _dp_full = []
-    _dp_ddr = []
-    for ii in range(RandSubsets):
-        # choose random subset of neurons
-        neurons = np.random.choice(np.arange(0, Ndim), nset, replace=False)
-        X = X_raw[neurons, :, :]
-        Xest = X[:, eidx]
-        Xval = X[:, tidx]
-
-        # full rank data
-        try:
-            r = compute_dprime(Xest[:, :, 0], Xest[:, :, 1])
-            r = compute_dprime(Xval[:, :, 0], Xval[:, :, 1], wopt=r.wopt)
-            _dp_full.append(r.dprimeSquared)
-        except ValueError:
-            # not enough reps
-            _dp_full.append(np.nan)
-
-        # dDR
-        ddr = dDR()
-        ddr.fit(Xest[:, :, 0].T, Xest[:, :, 1].T)
-        Xest_ddr1 = ddr.transform(Xest[:, :, 0].T)
-        Xest_ddr2 = ddr.transform(Xest[:, :, 1].T)
-        Xval_ddr1 = ddr.transform(Xval[:, :, 0].T)
-        Xval_ddr2 = ddr.transform(Xval[:, :, 1].T)
-
-        r = compute_dprime(Xest_ddr1.T, Xest_ddr2.T)
-        r = compute_dprime(Xval_ddr1.T, Xval_ddr2.T, wopt=r.wopt)
-
-        _dp_ddr.append(r.dprimeSquared)
-    
-    dp_ddr_klarge.append(_dp_ddr)
-    dp_full_klarge.append(_dp_full)
-
-dp_ddr_klarge = np.stack(dp_ddr_klarge)
-dp_full_klarge = np.stack(dp_full_klarge)
+# some script params
+nSamples = 100 # number of random samples for each sample size
+krange = np.arange(10, 55, 5)
+zscore = True
 
 
-# =========================================================== plot results ===========================================================
+# Load data, get z-score params, compute BF
+data = Dataset().load(name='CRD004a')
 
-# use full rank data matrix, highest trial number, to determine the approximate "peak" information
-norm1 = np.nanmax(np.concatenate((dp_full_klarge, dp_full_klarge)))
-norm2 = np.nanmax(np.concatenate((dp_ddr_ksmall, dp_ddr_ksmall)))
+bfsnr = '-InfdB'
+rnoise = np.stack([d[:, :, data.meta['evokedBins']].sum(axis=-1) for k, d in data.spikeData[bfsnr].items()])
+m = rnoise.mean(axis=(0, 1), keepdims=True)
+sd = rnoise.std(axis=(0, 1), keepdims=True)
+rnoise = rnoise - m
+rnoise /= sd
+rnoise = rnoise.mean(axis=1) # mean over trials
+rnoise_mean = rnoise.mean(axis=1) # mean over neurons
+bfidx = np.argmax(rnoise_mean)
+bf = data.cfs[bfidx]
 
-dp_ddr_klarge_plot = dp_ddr_klarge / norm1
-dp_ddr_ksmall_plot = dp_ddr_ksmall / norm2
-dp_full_klarge_plot = dp_full_klarge / norm1
-dp_full_ksmall_plot = dp_full_ksmall / norm2
+# get resp for other snrs for the tuning curve figure
+resp = {}
+for snr in data.snrs:
+    _r = np.stack([d[:, :, data.meta['evokedBins']].sum(axis=-1) for k, d in data.spikeData[snr].items()])
+    resp[snr] = ((_r - m) / sd).mean(axis=(1, 2))
 
-f, ax = plt.subplots(2, 3, figsize=(6.8, 4))
+# index for sorted cellids by BF
+bf_idx = np.argsort(np.argmax(rnoise, axis=0))
 
-# high sample size results
-ax[0, 0].plot(n_subsets, dp_ddr_klarge_plot.mean(axis=-1), label=r"$dDR$", color='tab:blue')
-ax[0, 0].fill_between(n_subsets, dp_ddr_klarge_plot.mean(axis=-1)-dp_ddr_klarge_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         dp_ddr_klarge_plot.mean(axis=-1)+dp_ddr_klarge_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         color='tab:blue', alpha=0.5, lw=0)
-ax[0, 0].plot(n_subsets, dp_full_klarge_plot.mean(axis=-1), label="Full rank data", color='tab:orange')
-ax[0, 0].fill_between(n_subsets, dp_full_klarge_plot.mean(axis=-1)-dp_full_klarge_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         dp_full_klarge_plot.mean(axis=-1)+dp_full_klarge_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         color='tab:orange', alpha=0.5, lw=0)
-ax[0, 0].set_ylim((-0.1, 1.1))
-ax[0, 0].set_xlabel(r'Number of neurons ($N$)')
-ax[0, 0].set_ylabel(r"cross-validated $d'^2$"+"\n(norm. to peak)")
-ax[0, 0].set_title(r"$N_{tot}=%s$, $k=%s$"%(str(Ndim), str(klarge)))
-ax[0, 0].legend(frameon=False)
+# choose the two stimulus pairs to compare. For both "target detection" and "freq. discrimin", use (-Inf, BF) vs. (XXX, YYY)
+x1k = ('-InfdB', bf)
+x2k = ('-5dB', bf)     # "target detection"
+obf = data.cfs[bfidx-3]
+x3k = ('-InfdB', obf) # freq discrim, ~1 octave
 
-idx = np.argmax(abs(evecs_klarge.T.dot(dU.T)))
-ax[0, 1].plot(evals_klarge / sum(evals_klarge), color='grey')
-ax[0, 1].plot(idx, (evals_klarge / sum(evals_klarge))[idx], 'o', color='k', markersize=3)
-ax[0, 1].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
-ax[0, 1].set_ylabel("Fraction var. explained")
-ax[0, 1].set_title("Scree plot")
+results = {
+    'targetDetect': {
+        'fullRank': np.zeros((len(krange), nSamples)),
+        'ddr': np.zeros((len(krange), nSamples)),
+        'tapca': np.zeros((len(krange), nSamples)),
+        'stpca': np.zeros((len(krange), nSamples))
+    },
+    'freqDiscrim': {
+        'fullRank': np.zeros((len(krange), nSamples)),
+        'ddr': np.zeros((len(krange), nSamples)),
+        'tapca': np.zeros((len(krange), nSamples)),
+        'stpca': np.zeros((len(krange), nSamples))
+    }
+}
+for cat, spair in zip(['targetDetect', 'freqDiscrim'], [[x1k, x2k], [x1k, x3k]]):
+    x1 = data.spikeData[spair[0][0]][spair[0][1]][:, :, data.meta['evokedBins']].sum(axis=-1)
+    x2 = data.spikeData[spair[1][0]][spair[1][1]][:, :, data.meta['evokedBins']].sum(axis=-1)
+    X = np.stack([x1, x2])
+    nUnits = X.shape[-1]
+    nTrials = X.shape[1]
 
-ax[0, 2].plot(abs(evecs_klarge.T.dot(dU.T)), color='grey')
-ax[0, 2].plot(idx, (abs(evecs_klarge.T.dot(dU.T)))[idx], 'o', color='k', markersize=3)
-ax[0, 2].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
-ax[0, 2].set_ylabel("Cosine similarity"+"\n"+r"($cos(\theta_{\Delta \mu, e_{n}})$)")
-ax[0, 2].set_title("Signal vs. noise similarity")
-ax[0, 2].set_ylim((-0.1, 1.1))
+    # nomalize X for decoding
+    if zscore:
+        #Xz = X - X.mean(axis=(0, 1), keepdims=True)
+        #Xz = Xz / Xz.std(axis=(0, 1), keepdims=True)
+        Xz = (X - m) / sd
+    else:
+        Xz = X.copy()
+    # get noise covariance matrix / eigenvalues
+    A0 = Xz[0] - Xz[0].mean(axis=0, keepdims=True)
+    B0 = Xz[1] - Xz[1].mean(axis=0, keepdims=True)
+    Xcenter = np.concatenate((A0, B0), axis=0)
+    cov = np.cov(Xcenter.T)
+    evals, evecs = np.linalg.eig(cov)
+    evecs = evecs[:, np.argsort(evals)[::-1]]
+    evals = evals[np.argsort(evals)[::-1]]
 
-# small sample size results
-ax[1, 0].plot(n_subsets, dp_ddr_ksmall_plot.mean(axis=-1), label=r"$dDR$", color='tab:blue')
-ax[1, 0].fill_between(n_subsets, dp_ddr_ksmall_plot.mean(axis=-1)-dp_ddr_ksmall_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         dp_ddr_ksmall_plot.mean(axis=-1)+dp_ddr_ksmall_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         color='tab:blue', alpha=0.5, lw=0)
-ax[1, 0].plot(n_subsets, dp_full_ksmall_plot.mean(axis=-1), label="Full rank data", color='tab:orange')
-ax[1, 0].fill_between(n_subsets, dp_full_ksmall_plot.mean(axis=-1)-dp_full_ksmall_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         dp_full_ksmall_plot.mean(axis=-1)+dp_full_ksmall_plot.std(axis=-1) / np.sqrt(RandSubsets),
-                         color='tab:orange', alpha=0.5, lw=0)
-ax[1, 0].set_ylim((-0.1, 1.1))
-ax[1, 0].set_xlabel(r'Number of neurons ($N$)')
-ax[1, 0].set_ylabel(r"cross-validated $d'^2$"+"\n(norm. to peak)")
-ax[1, 0].set_title(r"$N_{tot}=%s$, $k=%s$"%(str(Ndim), str(ksmall)))
+    # save evals / noise alignement
+    du = Xz[0].mean(axis=0) - Xz[1].mean(axis=0)
+    du /= np.linalg.norm(du)
+    align = abs(evecs.T.dot(du))
+    results[cat]['evals'] = evals
+    results[cat]['align'] = align
 
-idx = np.argmax(abs(evecs_ksmall.T.dot(dU.T)))
-ax[1, 1].plot(evals_ksmall / sum(evals_ksmall), color='grey')
-ax[1, 1].plot(idx, (evals_ksmall / sum(evals_ksmall))[idx], 'o', color='k', markersize=3)
-ax[1, 1].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
-ax[1, 1].set_ylabel("Fraction var. explained")
-ax[1, 1].set_title("Scree plot")
+    # save (overall) projection into ddr space
+    ddr = dDR(n_additional_axes=None)
+    ddr.fit(Xz[0], Xz[1])
+    x1ddr = ddr.transform(Xz[0]) 
+    x2ddr = ddr.transform(Xz[1])
+    results[cat]['x1'] = x1ddr
+    results[cat]['x2'] = x2ddr
+    r = compute_dprime(x1ddr.T, x2ddr.T)
+    results[cat]['wopt'] = r.wopt / np.linalg.norm(r.wopt)
 
-ax[1, 2].plot(abs(evecs_ksmall.T.dot(dU.T)), color='grey')
-ax[1, 2].plot(idx, (abs(evecs_ksmall.T.dot(dU.T)))[idx], 'o', color='k', markersize=3)
-ax[1, 2].set_xlabel(r"Prinicpal components ($e_1 - e_N$)")
-ax[1, 2].set_ylabel("Cosine similarity"+"\n"+r"($cos(\theta_{\Delta \mu, e_{n}})$)")
-ax[1, 2].set_title("Signal vs. noise similarity")
-ax[1, 2].set_ylim((-0.1, 1.1))
+    # perform decoding across different sample sizes
+    for ii, k in enumerate(krange):
+        print(f"k = {k}")
+        for jj in range(nSamples):
+            trials = np.random.choice(range(nTrials), k)
+            X = Xz.copy() 
 
+            # get fit/test trial indices for cross-validation (project *all* left out data for unbiased comparison)
+            eidx = np.random.choice(trials, int(k/2), replace=False)
+            tidx = np.random.choice(np.array(list(set(np.arange(nTrials)).difference(set(eidx)))), int(nTrials/2), replace=False)
+
+            # FULL RANK DECODING
+            try:
+                r = compute_dprime(X[0, eidx].T, X[1, eidx].T, suppress_log=True)
+                r = compute_dprime(X[0, tidx].T, X[1, tidx].T, wopt=r.wopt)
+                results[cat]['fullRank'][ii, jj] = r.dprimeSquared
+            except ValueError:
+                # too few samples for full rank approx.
+                results[cat]['fullRank'][ii, jj] = np.nan
+
+            # DDR
+            ddr = dDR(n_additional_axes=None)
+            ddr.fit(X[0, eidx], X[1, eidx])
+            fit_x1ddr = ddr.transform(X[0, eidx]) 
+            fit_x2ddr = ddr.transform(X[1, eidx])
+            test_x1ddr = ddr.transform(X[0, tidx])
+            test_x2ddr = ddr.transform(X[1, tidx])
+            # compute d-prime^2 and save from val set
+            rf = compute_dprime(fit_x1ddr.T, fit_x2ddr.T)
+            r = compute_dprime(test_x1ddr.T, test_x2ddr.T, wopt=rf.wopt) # use fit decoding axis
+            results[cat]['ddr'][ii, jj] = r.dprimeSquared
+
+            # stPCA
+            pca = PCA(n_components=2)
+            pca.fit(np.concatenate((X[0, eidx], X[1, eidx]), axis=0))
+            Xest_pca1 = pca.transform(X[0, eidx])
+            Xest_pca2 = pca.transform(X[1, eidx])
+            Xval_pca1 = pca.transform(X[0, tidx])
+            Xval_pca2 = pca.transform(X[1, tidx])
+
+            r = compute_dprime(Xest_pca1.T, Xest_pca2.T)
+            r = compute_dprime(Xval_pca1.T, Xval_pca2.T, wopt=r.wopt)
+
+            results[cat]['stpca'][ii, jj] = r.dprimeSquared
+
+            # taPCA
+            pca = PCA(n_components=1)
+            pca.fit(np.concatenate((X[0, eidx].mean(axis=0, keepdims=True), X[1, eidx].mean(axis=0, keepdims=True)), axis=0))
+            Xest_pca1 = pca.transform(X[0, eidx])
+            Xest_pca2 = pca.transform(X[1, eidx])
+            Xval_pca1 = pca.transform(X[0, tidx])
+            Xval_pca2 = pca.transform(X[1, tidx])
+
+            r = compute_dprime(Xval_pca1.T, Xval_pca2.T)
+
+            results[cat]['tapca'][ii, jj] = r
+
+# plot projections (scatter plot, marginal on wopt, marginal on dU)
+
+# remove outliers just for visualization
+theta = 1
+c = 'targetDetect'
+gm = np.sqrt(results[c]['x1'][:,0]**2 + results[c]['x1'][:,1]**2)
+x1td = results[c]['x1'][gm<=(np.median(gm)+(theta*np.std(gm)))]
+gm = np.sqrt(results[c]['x2'][:,0]**2 + results[c]['x2'][:,1]**2)
+x2td = results[c]['x2'][gm<=(np.median(gm)+(theta*np.std(gm)))]
+c = 'freqDiscrim'
+gm = np.sqrt(results[c]['x1'][:,0]**2 + results[c]['x1'][:,1]**2)
+x1fd = results[c]['x1'][gm<=(np.median(gm)+(theta*np.std(gm)))]
+gm = np.sqrt(results[c]['x2'][:,0]**2 + results[c]['x2'][:,1]**2)
+x2fd = results[c]['x2'][gm<=(np.median(gm)+(theta*np.std(gm)))]
+
+ms = 5
+bins = np.arange(-10, 10, 1)
+f, ax = plt.subplots(1, 3, figsize=(6, 2), sharex=True)
+
+plot_stim_pair_dDR(x1td, 
+                   x2td, 
+                   xlab=r'Signal ($\Delta \mu$)',
+                   ylab=r"Noise",
+                   lw=1,
+                   s=ms,
+                   ax=ax[0])
+cent = np.concatenate((x1td[:, 0], x2td[:, 0])).mean()
+ax[1].hist(x1td[:, 0] - cent, histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[1].hist(x2td[:, 0] - cent, histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[1].set_title(r"$\Delta \mu$ projection")
+ax[2].hist(x1td.dot(results['targetDetect']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[2].hist(x2td.dot(results['targetDetect']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[2].set_title(r"$w_{opt}$ projection")
+
+f.tight_layout()
+
+if savefig:
+    f.savefig(fig_m1)
+
+f, ax = plt.subplots(1, 3, figsize=(6, 2), sharex=True)
+
+plot_stim_pair_dDR(x1fd, 
+                   x2fd, 
+                   xlab=r'Signal ($\Delta \mu$)',
+                   ylab=r"Noise",
+                   lw=1,
+                   s=ms,
+                   ax=ax[0])
+cent = np.concatenate((x1fd[:, 0], x2fd[:, 0])).mean()
+ax[1].hist(x1fd[:, 0] - cent, histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[1].hist(x2fd[:, 0] - cent, histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[1].set_title(r"$\Delta \mu$ projection")
+ax[2].hist(x1fd.dot(results['freqDiscrim']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[2].hist(x2fd.dot(results['freqDiscrim']['wopt']).squeeze(), histtype='stepfilled', lw=0, edgecolor='k', alpha=0.5, bins=bins)
+ax[2].set_title(r"$w_{opt}$ projection")
+
+f.tight_layout()
+
+if savefig:
+    f.savefig(fig_m2)
+
+# ========================================================================================================
+# overall figure -- tuning panels / decoding performance
+f = plt.figure(figsize=(14, 7.5))
+gs = f.add_gridspec(10, 19)
+bfim = f.add_subplot(gs[:6, :4])
+ftc = f.add_subplot(gs[6:, :4])
+p1 = f.add_subplot(gs[:5, 4:9])
+p2 = f.add_subplot(gs[5:, 4:9])
+d1 = f.add_subplot(gs[:5, 9:14])
+d2 = f.add_subplot(gs[5:, 9:14])
+d1n = f.add_subplot(gs[:5, 14:])
+d2n = f.add_subplot(gs[5:, 14:])
+
+# plot individual neuron's tuning curves on heatmap
+bfim.imshow(rnoise[:, bf_idx].T, cmap='bwr', aspect='auto', vmin=-2, vmax=2)
+bfim.set_ylabel("Neuron")
+bfim.set_xticks(range(len(data.cfs)))
+bfim.set_xticklabels(data.cfs, rotation=45)
+bfim.set_xlabel('Noise Center Frequency')
+
+# plot the mean tuning curve over neurons
+ftc.plot(data.cfs, rnoise_mean, '.-', color='k', lw=1, label='-InfdB')
+cmap = cm.get_cmap('Reds', 20)
+for snr, col in zip(['-10dB', '-5dB', '0dB'], [cmap(5), cmap(10), cmap(15)]):
+    ftc.plot(data.cfs, resp[snr], '.-', color=col, lw=1, label=snr)
+ftc.legend(frameon=False)
+ftc.set_ylabel("Spike count (z-scored)")
+ftc.set_xlabel('Noise Center Frequency')
+ftc.set_xscale('log')
+
+# performance for "decoding"
+for a, c in zip([d1, d2], ['targetDetect', 'freqDiscrim']):
+    a.plot(krange[:-1], results[c]['ddr'].mean(axis=1)[:-1], '.-', color='royalblue', label=r"$dDR$")
+    a.fill_between(krange[:-1], results[c]['ddr'].mean(axis=1)[:-1] - results[c]['ddr'].std(axis=1)[:-1] / np.sqrt(nSamples),
+                                results[c]['ddr'].mean(axis=1)[:-1] + results[c]['ddr'].std(axis=1)[:-1] / np.sqrt(nSamples),
+                                lw=0, alpha=0.5, color='royalblue')
+
+    a.plot(krange[:-1], results[c]['stpca'].mean(axis=1)[:-1], '.-', color='orange', label=r"$stPCA$")
+    a.fill_between(krange[:-1], results[c]['stpca'].mean(axis=1)[:-1] - results[c]['stpca'].std(axis=1)[:-1] / np.sqrt(nSamples),
+                                results[c]['stpca'].mean(axis=1)[:-1] + results[c]['stpca'].std(axis=1)[:-1] / np.sqrt(nSamples),
+                                lw=0, alpha=0.5, color='orange')
+    a.plot(krange[:-1], results[c]['tapca'].mean(axis=1)[:-1], '.-', color='k', label=r"$taPCA$")
+    a.fill_between(krange[:-1], results[c]['tapca'].mean(axis=1)[:-1] - results[c]['tapca'].std(axis=1)[:-1] / np.sqrt(nSamples),
+                                results[c]['tapca'].mean(axis=1)[:-1] + results[c]['tapca'].std(axis=1)[:-1] / np.sqrt(nSamples),
+                                lw=0, alpha=0.5, color='k')
+    a.legend(frameon=False)
+    a.set_ylabel(r"$d'^2$")
+    a.set_xlabel(r"Trials ($k$)")
+    a.set_ylim((np.max([0, a.get_ylim()[1]-6]), None))
+
+ylim = (10**-3, 1)
+for a, c in zip([d1n, d2n], ['targetDetect', 'freqDiscrim']):
+    evcolor = 'lightgreen'
+    alcolor = 'orchid'
+    ncomp = np.arange(1, nUnits+1)
+    ylim = (10**-3, 1)
+    a.plot(ncomp, evals / evals.sum(), '.-', markersize=10, markerfacecolor='white', color=evcolor)
+    a.set_xscale('log'); a.set_yscale('log')
+    a.set_xlabel(r"Noise component ($\mathbf{e}_1-\mathbf{e}_N$)")
+    a.set_ylabel("Fract. noise var. exp.", color=evcolor)
+    a.tick_params(axis='y', labelcolor=evcolor)
+    a.set_ylim(ylim)
+    ax2 = a.twinx()
+    ax2.spines['right'].set_visible(True)
+    ax2.plot(ncomp, results[c]['align'], '.-', markersize=10, markerfacecolor='white', color=alcolor, zorder=-nUnits-1)
+    ax2.set_ylabel(r"Noise-signal alignment", color=alcolor)
+    ax2.tick_params(axis='y', labelcolor=alcolor)
+    ax2.set_ylim(0, 1)
+
+# plot projections
+for a, c in zip([p1, p2], [[x1td, x2td], [x1fd, x2fd]]):
+    # remove outliers for visualization
+    cent = np.concatenate((c[0][:, 0], c[1][:, 0])).mean()
+    c[0][:, 0] = c[0][:, 0] - cent
+    c[1][:, 0] = c[1][:, 0] - cent
+    plot_stim_pair_dDR(c[0], 
+                       c[1], 
+                       xlab=r'Signal ($\Delta \mu$)',
+                       ylab=r"Noise",
+                       lw=1,
+                       s=ms,
+                       ax=a)
+    a.set_xlim((bins[0], bins[-1]+1))
+    a.set_ylim(a.get_ylim()[0]-2, a.get_ylim()[1]+2)
 f.tight_layout()
 
 if savefig:

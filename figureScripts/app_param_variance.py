@@ -1,3 +1,10 @@
+'''
+Illustrate how the variance of parameter value estimates depends on sample size.
+
+This is a demonstration of the derivations in manuscript Appendix
+'''
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
