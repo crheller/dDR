@@ -41,6 +41,8 @@ class dDR:
             noise_axis = evecs[:, [0]].T
         else:
             noise_axis = self.ddr2_init
+        
+        self.noise_axis = noise_axis
 
         # figure out the axis that spans the plane with dU
         noise_on_dec = (np.dot(noise_axis, dU.T)) * dU
