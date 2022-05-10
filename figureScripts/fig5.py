@@ -10,7 +10,7 @@ Real data -- dataset1 (CRD004a)
 Summary panels showing ratio of dDR:taPCA, mag(dU), noise alignment across CFs?
 """
 from dDR.utils.decoding import compute_dprime
-from dDR.utils.dataset import Dataset
+from dDR.utils.dataset import Dataset, ROOT_DIR
 from dDR.utils.plotting import plot_stim_pair_dDR
 from dDR.PCA import PCA
 from dDR.dDR import dDR
@@ -26,15 +26,17 @@ mpl.rcParams['font.size'] = 8
 
 np.random.seed(123)
 
-savefig = True
-fig_name = os.path.join(os.getcwd(), 'figures/fig5.svg')
-fig_m1 = os.path.join(os.getcwd(), 'figures/fig5_m1.svg')
-fig_m2 = os.path.join(os.getcwd(), 'figures/fig5_m2.svg')
+savefig = False
+fig_name = os.path.join(ROOT_DIR, 'figures/fig5.svg')
+fig_m1 = os.path.join(ROOT_DIR, 'figures/fig5_m1.svg')
+fig_m2 = os.path.join(ROOT_DIR, 'figures/fig5_m2.svg')
 
 # some script params
 nSamples = 100 # number of random samples for each sample size
 krange = np.arange(10, 55, 5)
 zscore = True
+# TODO: Add n-fold to the cross-val to make results interpretable?
+# ALTERNATIVE: don't use cross-val for this figure?
 
 
 # Load data, get z-score params, compute BF
@@ -124,7 +126,7 @@ for cat, spair in zip(['targetDetect', 'freqDiscrim'], [[x1k, x2k], [x1k, x3k]])
     for ii, k in enumerate(krange):
         print(f"k = {k}")
         for jj in range(nSamples):
-            trials = np.random.choice(range(nTrials), k)
+            trials = np.random.choice(range(nTrials), k, replace=True)
             X = Xz.copy() 
 
             # get fit/test trial indices for cross-validation (project *all* left out data for unbiased comparison)
