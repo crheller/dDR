@@ -34,11 +34,11 @@ fig_m1 = os.path.join(ROOT_DIR, 'figures/fig5_m1.svg')
 fig_m2 = os.path.join(ROOT_DIR, 'figures/fig5_m2.svg')
 
 # some script params
-valsize = 20
+valsize = 15
 nSamples = int(50 /  valsize) # how many different *unique* ways can we choose a val set of len 5
-nSamples = 2    # hold fixed, but select randomly which is val
-nResample = 200 # bootstrap the est sets, for a given val set
-krange = [5, 10, 15, 20, 25, 30] # number of trials to use for estimation set
+nSamples = 5    # hold fixed, but select randomly which is val
+nResample = 100 # bootstrap the est sets, for a given val set
+krange = [5, 10, 15, 20, 25, 30, 35] # number of trials to use for estimation set
 zscore = True
 
 
@@ -127,15 +127,8 @@ for cat, spair in zip(['targetDetect', 'freqDiscrim'], [[x1k, x2k], [x1k, x3k]])
     r = compute_dprime(x1ddr.T, x2ddr.T)
     results[cat]['wopt'] = r.wopt / np.linalg.norm(r.wopt)
 
-    # shuffle trials so that we can select exclusive shuffled sets
-    #Xz = Xz[:, np.random.choice(range(Xz.shape[1]), Xz.shape[1], replace=False), :]
-
     # perform decoding across different sample sizes
     for jj in range(nSamples):
-        # get val samples 
-        #ss = jj * valsize
-        #ee = ss + valsize
-        #tidx = range(ss, ee)
         tidx = np.random.choice(range(nTrials), valsize, replace=False)
         print(f"est/val set = {jj} / {nSamples}")
         for ii, k in enumerate(krange):
@@ -305,7 +298,7 @@ for a, c in zip([d1, d2], ['targetDetect', 'freqDiscrim']):
                                 u + err,
                                 lw=0, alpha=0.5, color='k')
     a.legend(frameon=False)
-    a.set_ylabel(r"$d'^2$")
+    a.set_ylabel(r"Relative decoding performance")
     a.set_xlabel(r"Trials ($k$)")
     #a.set_ylim((np.max([0, a.get_ylim()[1]-6]), None))
     a.set_ylim((0, 1.1))
