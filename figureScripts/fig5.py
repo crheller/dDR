@@ -1,4 +1,6 @@
 """
+11.05.2022 -- improved standard error estimates for across trial comparisons
+    (have to deal with weird resampling from finite data)
 Real data -- dataset1 (CRD004a)
 
 1) Tuning curves for individual neurons
@@ -32,11 +34,12 @@ fig_m1 = os.path.join(ROOT_DIR, 'figures/fig5_m1.svg')
 fig_m2 = os.path.join(ROOT_DIR, 'figures/fig5_m2.svg')
 
 # some script params
-nSamples = 100 # number of random samples for each sample size
-krange = np.arange(10, 55, 5)
+valsize = 15
+nSamples = int(50 /  valsize) # how many different *unique* ways can we choose a val set of len 5
+nSamples = 5    # hold fixed, but select randomly which is val
+nResample = 100 # bootstrap the est sets, for a given val set
+krange = [5, 10, 15, 20, 25, 30, 35] # number of trials to use for estimation set
 zscore = True
-# TODO: Add n-fold to the cross-val to make results interpretable?
-# ALTERNATIVE: don't use cross-val for this figure?
 
 
 # Load data, get z-score params, compute BF
@@ -50,7 +53,7 @@ rnoise = rnoise - m
 rnoise /= sd
 rnoise = rnoise.mean(axis=1) # mean over trials
 rnoise_mean = rnoise.mean(axis=1) # mean over neurons
-bfidx = np.argmax(rnoise_mean)
+bfidx = np.argsort(rnoise_mean)[::-1][0]
 bf = data.cfs[bfidx]
 
 # get resp for other snrs for the tuning curve figure
@@ -70,16 +73,20 @@ x3k = ('-InfdB', obf) # freq discrim, ~1 octave
 
 results = {
     'targetDetect': {
-        'fullRank': np.zeros((len(krange), nSamples)),
-        'ddr': np.zeros((len(krange), nSamples)),
-        'tapca': np.zeros((len(krange), nSamples)),
-        'stpca': np.zeros((len(krange), nSamples))
+        'fullRank': np.zeros((len(krange), nResample, nSamples)),
+        'ddr': np.zeros((len(krange), nResample, nSamples)),
+        'tapca': np.zeros((len(krange), nResample, nSamples)),
+        'stpca': np.zeros((len(krange), nResample, nSamples)),
+        'tapca_norm': np.zeros((len(krange), nResample, nSamples)),
+        'stpca_norm': np.zeros((len(krange), nResample, nSamples))
     },
     'freqDiscrim': {
-        'fullRank': np.zeros((len(krange), nSamples)),
-        'ddr': np.zeros((len(krange), nSamples)),
-        'tapca': np.zeros((len(krange), nSamples)),
-        'stpca': np.zeros((len(krange), nSamples))
+        'fullRank': np.zeros((len(krange), nResample, nSamples)),
+        'ddr': np.zeros((len(krange), nResample, nSamples)),
+        'tapca': np.zeros((len(krange), nResample, nSamples)),
+        'stpca': np.zeros((len(krange), nResample, nSamples)),
+        'tapca_norm': np.zeros((len(krange), nResample, nSamples)),
+        'stpca_norm': np.zeros((len(krange), nResample, nSamples))
     }
 }
 for cat, spair in zip(['targetDetect', 'freqDiscrim'], [[x1k, x2k], [x1k, x3k]]):
@@ -91,8 +98,6 @@ for cat, spair in zip(['targetDetect', 'freqDiscrim'], [[x1k, x2k], [x1k, x3k]])
 
     # nomalize X for decoding
     if zscore:
-        #Xz = X - X.mean(axis=(0, 1), keepdims=True)
-        #Xz = Xz / Xz.std(axis=(0, 1), keepdims=True)
         Xz = (X - m) / sd
     else:
         Xz = X.copy()
@@ -123,61 +128,67 @@ for cat, spair in zip(['targetDetect', 'freqDiscrim'], [[x1k, x2k], [x1k, x3k]])
     results[cat]['wopt'] = r.wopt / np.linalg.norm(r.wopt)
 
     # perform decoding across different sample sizes
-    for ii, k in enumerate(krange):
-        print(f"k = {k}")
-        for jj in range(nSamples):
-            trials = np.random.choice(range(nTrials), k, replace=True)
+    for jj in range(nSamples):
+        tidx = np.random.choice(range(nTrials), valsize, replace=False)
+        print(f"est/val set = {jj} / {nSamples}")
+        for ii, k in enumerate(krange):
+            # randomly select estimation trials
+            est_trials = np.array(list(set(np.arange(nTrials)).difference(set(tidx))))
             X = Xz.copy() 
 
+            print(f"bootstrapping for k = {k}")
             # get fit/test trial indices for cross-validation (project *all* left out data for unbiased comparison)
-            eidx = np.random.choice(trials, int(k/2), replace=False)
-            tidx = np.random.choice(np.array(list(set(np.arange(nTrials)).difference(set(eidx)))), int(nTrials/2), replace=False)
+            for bb in range(nResample):
+                eidx = np.random.choice(est_trials, k, replace=True)
 
-            # FULL RANK DECODING
-            try:
-                r = compute_dprime(X[0, eidx].T, X[1, eidx].T, suppress_log=True)
-                r = compute_dprime(X[0, tidx].T, X[1, tidx].T, wopt=r.wopt)
-                results[cat]['fullRank'][ii, jj] = r.dprimeSquared
-            except ValueError:
-                # too few samples for full rank approx.
-                results[cat]['fullRank'][ii, jj] = np.nan
+                # FULL RANK DECODING
+                try:
+                    r = compute_dprime(X[0, eidx].T, X[1, eidx].T, suppress_log=True)
+                    r = compute_dprime(X[0, tidx].T, X[1, tidx].T, wopt=r.wopt)
+                    results[cat]['fullRank'][ii, bb, jj] = r.dprimeSquared
+                except ValueError:
+                    # too few samples for full rank approx.
+                    results[cat]['fullRank'][ii, bb, jj] = np.nan
 
-            # DDR
-            ddr = dDR(n_additional_axes=None)
-            ddr.fit(X[0, eidx], X[1, eidx])
-            fit_x1ddr = ddr.transform(X[0, eidx]) 
-            fit_x2ddr = ddr.transform(X[1, eidx])
-            test_x1ddr = ddr.transform(X[0, tidx])
-            test_x2ddr = ddr.transform(X[1, tidx])
-            # compute d-prime^2 and save from val set
-            rf = compute_dprime(fit_x1ddr.T, fit_x2ddr.T)
-            r = compute_dprime(test_x1ddr.T, test_x2ddr.T, wopt=rf.wopt) # use fit decoding axis
-            results[cat]['ddr'][ii, jj] = r.dprimeSquared
+                # DDR
+                ddr = dDR(n_additional_axes=None)
+                ddr.fit(X[0, eidx], X[1, eidx])
+                fit_x1ddr = ddr.transform(X[0, eidx]) 
+                fit_x2ddr = ddr.transform(X[1, eidx])
+                test_x1ddr = ddr.transform(X[0, tidx])
+                test_x2ddr = ddr.transform(X[1, tidx])
+                # compute d-prime^2 and save from val set
+                rf = compute_dprime(fit_x1ddr.T, fit_x2ddr.T)
+                r = compute_dprime(test_x1ddr.T, test_x2ddr.T, wopt=rf.wopt) # use fit decoding axis
+                results[cat]['ddr'][ii, bb, jj] = r.dprimeSquared
 
-            # stPCA
-            pca = PCA(n_components=2)
-            pca.fit(np.concatenate((X[0, eidx], X[1, eidx]), axis=0))
-            Xest_pca1 = pca.transform(X[0, eidx])
-            Xest_pca2 = pca.transform(X[1, eidx])
-            Xval_pca1 = pca.transform(X[0, tidx])
-            Xval_pca2 = pca.transform(X[1, tidx])
+                # stPCA
+                pca = PCA(n_components=2)
+                pca.fit(np.concatenate((X[0, eidx], X[1, eidx]), axis=0))
+                Xest_pca1 = pca.transform(X[0, eidx])
+                Xest_pca2 = pca.transform(X[1, eidx])
+                Xval_pca1 = pca.transform(X[0, tidx])
+                Xval_pca2 = pca.transform(X[1, tidx])
 
-            r = compute_dprime(Xest_pca1.T, Xest_pca2.T)
-            r = compute_dprime(Xval_pca1.T, Xval_pca2.T, wopt=r.wopt)
+                r = compute_dprime(Xest_pca1.T, Xest_pca2.T)
+                r = compute_dprime(Xval_pca1.T, Xval_pca2.T, wopt=r.wopt)
 
-            results[cat]['stpca'][ii, jj] = r.dprimeSquared
+                results[cat]['stpca'][ii, bb, jj] = r.dprimeSquared
 
-            # taPCA
-            pca = PCA(n_components=1)
-            pca.fit(np.concatenate((X[0, eidx].mean(axis=0, keepdims=True), X[1, eidx].mean(axis=0, keepdims=True)), axis=0))
-            Xest_pca1 = pca.transform(X[0, eidx])
-            Xest_pca2 = pca.transform(X[1, eidx])
-            Xval_pca1 = pca.transform(X[0, tidx])
-            Xval_pca2 = pca.transform(X[1, tidx])
+                # taPCA
+                pca = PCA(n_components=1)
+                pca.fit(np.concatenate((X[0, eidx].mean(axis=0, keepdims=True), X[1, eidx].mean(axis=0, keepdims=True)), axis=0))
+                Xest_pca1 = pca.transform(X[0, eidx])
+                Xest_pca2 = pca.transform(X[1, eidx])
+                Xval_pca1 = pca.transform(X[0, tidx])
+                Xval_pca2 = pca.transform(X[1, tidx])
 
-            r = compute_dprime(Xval_pca1.T, Xval_pca2.T)
+                r = compute_dprime(Xval_pca1.T, Xval_pca2.T)
 
-            results[cat]['tapca'][ii, jj] = r
+                results[cat]['tapca'][ii, bb, jj] = r
+
+            results[cat]["tapca_norm"][ii, :, jj] = results[cat]['tapca'][ii, :, jj] / results[cat]['ddr'][ii, :, jj].mean()
+            results[cat]["stpca_norm"][ii, :, jj] = results[cat]['stpca'][ii, :, jj] / results[cat]['ddr'][ii, :, jj].mean()
 
 # plot projections (scatter plot, marginal on wopt, marginal on dU)
 
@@ -271,24 +282,27 @@ ftc.set_xlabel('Noise Center Frequency')
 ftc.set_xscale('log')
 
 # performance for "decoding"
+klab = np.array(krange) + valsize # total trials used
 for a, c in zip([d1, d2], ['targetDetect', 'freqDiscrim']):
-    a.plot(krange[:-1], results[c]['ddr'].mean(axis=1)[:-1], '.-', color='royalblue', label=r"$dDR$")
-    a.fill_between(krange[:-1], results[c]['ddr'].mean(axis=1)[:-1] - results[c]['ddr'].std(axis=1)[:-1] / np.sqrt(nSamples),
-                                results[c]['ddr'].mean(axis=1)[:-1] + results[c]['ddr'].std(axis=1)[:-1] / np.sqrt(nSamples),
-                                lw=0, alpha=0.5, color='royalblue')
-
-    a.plot(krange[:-1], results[c]['stpca'].mean(axis=1)[:-1], '.-', color='orange', label=r"$stPCA$")
-    a.fill_between(krange[:-1], results[c]['stpca'].mean(axis=1)[:-1] - results[c]['stpca'].std(axis=1)[:-1] / np.sqrt(nSamples),
-                                results[c]['stpca'].mean(axis=1)[:-1] + results[c]['stpca'].std(axis=1)[:-1] / np.sqrt(nSamples),
+    err = (np.mean(results[c]['stpca_norm'].std(axis=1), axis=1)) / (1/np.sqrt(np.array(krange)/krange[-1])) 
+    u = np.mean(np.mean(results[c]['stpca_norm'], axis=1), axis=1)
+    a.plot(klab, u, '.-', color='orange', label=r"$stPCA$")
+    a.fill_between(klab, u - err,
+                                u + err,
                                 lw=0, alpha=0.5, color='orange')
-    a.plot(krange[:-1], results[c]['tapca'].mean(axis=1)[:-1], '.-', color='k', label=r"$taPCA$")
-    a.fill_between(krange[:-1], results[c]['tapca'].mean(axis=1)[:-1] - results[c]['tapca'].std(axis=1)[:-1] / np.sqrt(nSamples),
-                                results[c]['tapca'].mean(axis=1)[:-1] + results[c]['tapca'].std(axis=1)[:-1] / np.sqrt(nSamples),
+
+    err = (np.mean(results[c]['tapca_norm'].std(axis=1), axis=1)) / (1/np.sqrt(np.array(krange)/krange[-1])) 
+    u = np.mean(np.mean(results[c]['tapca_norm'], axis=1), axis=1)
+    a.plot(klab, u, '.-', color='k', label=r"$taPCA$")
+    a.fill_between(klab, u - err,
+                                u + err,
                                 lw=0, alpha=0.5, color='k')
     a.legend(frameon=False)
-    a.set_ylabel(r"$d'^2$")
+    a.set_ylabel(r"Relative decoding performance")
     a.set_xlabel(r"Trials ($k$)")
-    a.set_ylim((np.max([0, a.get_ylim()[1]-6]), None))
+    #a.set_ylim((np.max([0, a.get_ylim()[1]-6]), None))
+    a.set_ylim((0, 1.1))
+    a.axhline(1, linestyle="--", color="grey")
 
 ylim = (10**-3, 1)
 for a, c in zip([d1n, d2n], ['targetDetect', 'freqDiscrim']):
@@ -328,5 +342,6 @@ f.tight_layout()
 
 if savefig:
     f.savefig(fig_name)
+    f.savefig(fig_name.replace(".svg", ".png"))
 
 plt.show()
