@@ -171,6 +171,6 @@ ax2.tick_params(axis='y', labelcolor='orange')
 f.tight_layout()
 
 if savefig:
-    f.savefig(fig_name)
+    f.savefig(fig_name, dpi=600)
 
 plt.show()

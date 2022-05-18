@@ -169,6 +169,6 @@ ax[3].set_xlabel(r"Sample size ($k$)")
 f.tight_layout()
 
 if savefig:
-    f.savefig(fig_name)
+    f.savefig(fig_name, dpi=600)
 
 plt.show()

@@ -341,7 +341,7 @@ for a, c in zip([p1, p2], [[x1td, x2td], [x1fd, x2fd]]):
 f.tight_layout()
 
 if savefig:
-    f.savefig(fig_name)
+    f.savefig(fig_name, dpi=600)
     f.savefig(fig_name.replace(".svg", ".png"))
 
 plt.show()
