@@ -10,7 +10,7 @@ setup(name='dDR',
       python_requires='>=3.8.3',
       install_requires=['numpy', 'matplotlib'],
       extras_require={
-        'extras': ['seaborn']
+        'extras': ['seaborn', 'scipy']
       },
       packages=find_packages(include=['dDR', 'dDR.*']),
       zip_safe=False)
