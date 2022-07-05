@@ -1,15 +1,10 @@
 """
-Simple two-neuron schematic of single trial responses and decoding axis for high / low rep conditions
-
-Shuffled distribution of pairwise covariance for the two neurons in each conditions
-
-Covariance matrix
-
-cross-validated d'^2 vs. k and var(covariance) vs. k. On same axes.
+Averbeck & Lee type cartoon to help explain the rationale behind dDR, and what d'^2 is
 """
 from dDR.utils.decoding import compute_dprime
 from dDR.utils.plotting import compute_ellipse
 
+from scipy.optimize import curve_fit
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,159 +13,196 @@ mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 mpl.rcParams['font.size'] = 8
 
+# TODO: Add decoding axes, edit in inkscape, add figure / text to mansucript
+
 np.random.seed(123)
 
 savefig = True
 fig_name = os.path.join(os.getcwd(), 'figures/fig1.svg')
 
-# generate pseudo data, X, for decoding
-k1 = 10
-k2 = 100
-u1 = [2, 0]
-u2 = [-2, 0]
-cov = np.array([[1, 0.4], [0.4, 1]])
-x11 = np.random.multivariate_normal(u1, cov, k1)
-x21 = np.random.multivariate_normal(u2, cov, k1)
-X1 = np.stack([x11, x21])
-x12 = np.random.multivariate_normal(u1, cov, k2)
-x22 = np.random.multivariate_normal(u2, cov, k2)
-X2 = np.stack([x12, x22])
+nsamp = 50000
+amp = 2.5
 
-# get decoding axis and projections
-d = compute_dprime(x11.T, x21.T)
-wopt1 = d.wopt * 2
-d = compute_dprime(x12.T, x22.T)
-wopt2 = d.wopt * 2
+def gaus(x, u, s, a):
+    return a * np.exp( - ( ((x-u)**2) / (2*s**2) ) ) 
 
-# generate list of shuffled covariance values for k=k1/k2
-nshuff = 500
-scov1 = []
-scov2 = []
-for i in range(0, nshuff):
-    x = np.random.choice(x11[:, 0], x11.shape[0], replace=False)
-    y = np.random.choice(x11[:, 1], x11.shape[0], replace=False)
-    scov1.append(np.cov(x, y)[0, 1])
-    x = np.random.choice(x12[:, 0], x12.shape[0], replace=False)
-    y = np.random.choice(x12[:, 1], x12.shape[0], replace=False)
-    scov2.append(np.cov(x, y)[0, 1])
+# figure layout
+f = plt.figure(figsize=(6, 4))
+s1 = plt.subplot2grid((6, 3), (0, 0), rowspan=3, colspan=1)
+s2 = plt.subplot2grid((6, 3), (0, 1), rowspan=3, colspan=1)
+s3 = plt.subplot2grid((6, 3), (0, 2), rowspan=3, colspan=1)
+h11 = plt.subplot2grid((6, 3), (4, 0), rowspan=1, colspan=1)
+h12 = plt.subplot2grid((6, 3), (5, 0), rowspan=1, colspan=1)
+h21 = plt.subplot2grid((6, 3), (4, 1), rowspan=1, colspan=1)
+h22 = plt.subplot2grid((6, 3), (5, 1), rowspan=1, colspan=1)
+h31 = plt.subplot2grid((6, 3), (4, 2), rowspan=1, colspan=1)
+h32 = plt.subplot2grid((6, 3), (5, 2), rowspan=1, colspan=1)
 
-# for a range of k, generate shuffled distros
-kscov = []
-dp = []
-krange = np.arange(10, 400, 2)
-_x1 = np.random.multivariate_normal(u1, cov, 1000)
-for i, _k in enumerate(krange):
-    _s = []
-    _dp = []
-    print(f"{int((i/len(krange)) * 100)} percent finished generating shuffles")
-    for i in range(0, nshuff):
-        x = np.random.choice(_x1[:, 0], _k, replace=False)
-        y = np.random.choice(_x1[:, 1], _k, replace=False)
-        _s.append(np.cov(x, y)[0, 1])
-        r1 = np.random.multivariate_normal(u1, cov, _k)
-        r2 = np.random.multivariate_normal(u2, cov, _k)
-        # get cv dprime w/ simple 50/50 split of data
-        est = np.random.choice(np.arange(_k), int(_k/2), replace=False)
-        val = np.array(list(set(np.arange(_k)).difference(set(est))))
-        # train decoder
-        resf = compute_dprime(r1[est, :].T, r2[est, :].T)
-        rest = compute_dprime(r1[val, :].T, r2[val, :].T, wopt=resf.wopt)
-        _dp.append(abs(rest.dprimeSquared - resf.dprimeSquared))
-    dp.append(_dp)
-    kscov.append(_s)
-dp = np.stack(dp)
-kscov = np.stack(kscov)
+# generate three sets of pseudo-data for two example neurons
 
-# plot the results
-f, ax = plt.subplots(2, 3, figsize=(6, 4))
+# EXAMPLE 1
+u1 = [1, 1]
+u2 = [2, 2]
+cov = np.array([
+    [1, np.sqrt(2) / 2],
+    [np.sqrt(2) / 2, 1]
+])
+x1 = np.random.multivariate_normal(u1, cov, nsamp).T
+x2 = np.random.multivariate_normal(u2, cov, nsamp).T
+e1 = compute_ellipse(x1[0], x1[1])
+e2 = compute_ellipse(x2[0], x2[1])
+s1.plot(e1[0], e1[1])
+s1.plot(e2[0], e2[1])
+# get decoding axis / plot histograms
+d = compute_dprime(x1, x2)
+wopt = d.wopt / np.linalg.norm(d.wopt)
+s1.plot([1.5, 1.5+amp*wopt[0][0]], [1.5, 1.5+amp*wopt[1][0]], "k-")
+s1.plot([1.5, 1.5-amp*wopt[0][0]], [1.5, 1.5-amp*wopt[1][0]], "k-")
+s1.plot([1.5, 1.5+amp*-wopt[1][0]], [1.5, 1.5+(amp*wopt[0][0])], "k--")
+s1.plot([1.5, 1.5-amp*-wopt[1][0]], [1.5, 1.5-(amp*wopt[0][0])], "k--")
+y = x1.T.dot(wopt).squeeze()
 
-# plot decoding figure1
-ax[0, 0].scatter(X1[0, :, 0], X1[0, :, 1], s=3, alpha=0.5, lw=0)
-ax[0, 0].scatter(X1[1, :, 0], X1[1, :, 1], s=3, alpha=0.5, lw=0)
-x, y = compute_ellipse(X1[0, :, 0], X1[0, :, 1])
-ax[0, 0].plot(x, y, color='tab:blue', label='Stim. a')
-x, y = compute_ellipse(X1[1, :, 0], X1[1, :, 1])
-ax[0, 0].plot(x, y, color='tab:orange', label='Stim. b')
-# plot decoding axis
-ref = np.array(u1) - ((np.array(u1) - np.array(u2)) / 2)
-wopt1 = (wopt1 / np.linalg.norm(wopt1)) * 2
-ax[0, 0].plot([ref[0]-wopt1[0], ref[0]+wopt1[0]], 
-            [ref[1]-wopt1[1], ref[1]+wopt1[1]], 'k-')
-ax[0, 0].legend(frameon=False)
-ax[0, 0].set_xlabel(r"$n_1$ spike counts")
-ax[0, 0].set_ylabel(r"$n_2$ spike counts")
-ax[0, 0].axis('equal')
-ax[0, 0].set_title(r"$k=%s$"%str(k1))
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h11.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
+y = x2.T.dot(wopt).squeeze()
 
-# plot decoding figure2
-ax[0, 1].scatter(X2[0, :, 0], X2[0, :, 1], s=3, alpha=0.5, lw=0)
-ax[0, 1].scatter(X2[1, :, 0], X2[1, :, 1], s=3, alpha=0.5, lw=0)
-x, y = compute_ellipse(X2[0, :, 0], X2[0, :, 1])
-ax[0, 1].plot(x, y, color='tab:blue', label='Stim. a')
-x, y = compute_ellipse(X2[1, :, 0], X2[1, :, 1])
-ax[0, 1].plot(x, y, color='tab:orange', label='Stim. b')
-# plot decoding axis
-ref = np.array(u1) - ((np.array(u1) - np.array(u2)) / 2)
-wopt2 = (wopt2 / np.linalg.norm(wopt2)) * 2
-ax[0, 1].plot([ref[0]-wopt2[0], ref[0]+wopt2[0]], 
-            [ref[1]-wopt2[1], ref[1]+wopt2[1]], 'k-')
-ax[0, 1].legend(frameon=False)
-ax[0, 1].set_xlabel(r"$n_1$ spike counts")
-ax[0, 1].set_ylabel(r"$n_2$ spike counts")
-ax[0, 1].axis('equal')
-ax[0, 1].set_title(r"$k=%s$"%str(k2))
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h11.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
 
-# force a/b to share axes
-ax[0, 0].set_xlim((-5, 5)); ax[0, 0].set_ylim((-5, 5))
-ax[0, 1].set_xlim((-5, 5)); ax[0, 1].set_ylim((-5, 5))
+d = compute_dprime(x1, x2, diag=True)
+wopt = d.wopt / np.linalg.norm(d.wopt)
+s1.plot([1.5, 1.5+amp*wopt[0][0]], [1.5, 1.5+amp*wopt[1][0]], "grey")
+s1.plot([1.5, 1.5-amp*wopt[0][0]], [1.5, 1.5-amp*wopt[1][0]], "grey")
+s1.plot([1.5, 1.5+amp*-wopt[1][0]], [1.5, 1.5+(amp*wopt[0][0])], "grey", linestyle="--")
+s1.plot([1.5, 1.5-amp*-wopt[1][0]], [1.5, 1.5-(amp*wopt[0][0])], "grey", linestyle="--")
+y = x1.T.dot(wopt).squeeze()
 
-# plot covariance matrix
-ax[0, 2].imshow(cov, cmap='Reds', aspect='auto')
-ax[0, 2].set_xticks([0, 1])
-ax[0, 2].set_yticks([0, 1])
-ax[0, 2].set_xticklabels([r"$n_1$", r"$n_2$"])
-ax[0, 2].set_yticklabels([r"$n_1$", r"$n_2$"])
-for c1 in np.arange(cov.shape[0]):
-    for c2 in np.arange(cov.shape[0]):
-        if c1!=c2:
-            c = 'k'
-        else: 
-            c = 'white'
-        ax[0, 2].text(c1, c2, str(cov[c1, c2]), 
-                        ha='center', va='center', color=c)
-ax[0, 2].set_title(r"$\Sigma=\Sigma_a=\Sigma_b$")
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h12.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
+y = x2.T.dot(wopt).squeeze()
 
-# plot shuffled distro for k=k in decoding figure
-llim, hlim = (-2, 2)
-ax[1, 0].hist(scov1, bins=np.arange(llim, hlim, 0.1), histtype='stepfilled', edgecolor='k', alpha=0.5)
-ax[1, 0].axvline(cov[0, 1], color='r')
-ax[1, 0].set_xlim((llim, hlim))
-ax[1, 0].set_title(r"$k=%s, \sigma^2=%s$" % (str(k1), str(round(np.var(scov1), 3))))
-ax[1, 0].set_xlabel(r"$cov(n_1, n_2)$ after shuffling")
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h12.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
 
-ax[1, 1].hist(scov2, bins=np.arange(llim, hlim, 0.1), histtype='stepfilled', edgecolor='k', alpha=0.5)
-ax[1, 1].axvline(cov[0, 1], color='r')
-ax[1, 1].set_xlim((llim, hlim))
-ax[1, 1].set_title(r"$k=%s, \sigma^2=%s$" % (str(k2), str(round(np.var(scov2), 3))))
-ax[1, 1].set_xlabel(r"$cov(n_1, n_2)$ after shuffling")
 
-# plot range of shuffle var for different values of k
-ax[1, 2].plot(krange, kscov.var(axis=-1))
-ax[1, 2].axhline(0, linestyle='--', color='k')
-ax[1, 2].set_ylabel(r"$\sigma^2$ of shuff. distribution", color='tab:blue')
-ax[1, 2].set_xlabel(r"No. of samples ($k$)")
-ax[1, 2].tick_params(axis='y', labelcolor='tab:blue')
+# EXAMPLE 2
+u1 = [1, 1.5]
+u2 = [2.41, 1.5]
+cov = np.array([
+    [1, np.sqrt(2) / 2],
+    [np.sqrt(2) / 2, 1]
+])
+x1 = np.random.multivariate_normal(u1, cov, nsamp).T
+x2 = np.random.multivariate_normal(u2, cov, nsamp).T
+e1 = compute_ellipse(x1[0], x1[1])
+e2 = compute_ellipse(x2[0], x2[1])
+s2.plot(e1[0], e1[1])
+s2.plot(e2[0], e2[1])
+# get decoding axis / plot histograms
+d = compute_dprime(x1, x2)
+wopt = d.wopt / np.linalg.norm(d.wopt)
+s2.plot([1.5, 1.5+amp*wopt[0][0]], [1.5, 1.5+amp*wopt[1][0]], "k-")
+s2.plot([1.5, 1.5-amp*wopt[0][0]], [1.5, 1.5-amp*wopt[1][0]], "k-")
+s2.plot([1.5, 1.5+amp*-wopt[1][0]], [1.5, 1.5+(amp*wopt[0][0])], "k--")
+s2.plot([1.5, 1.5-amp*-wopt[1][0]], [1.5, 1.5-(amp*wopt[0][0])], "k--")
+y = x1.T.dot(wopt).squeeze()
 
-# generate twin axes for d'^2
-ax2 = ax[1, 2].twinx()
-ax2.spines['right'].set_visible(True)
-ax2.plot(krange, dp.mean(axis=-1), color='orange')
-ax2.set_ylabel(r"Error in $d'^2$ estimate"+"\nabs(Est. - Val.)", color='orange')
-ax2.tick_params(axis='y', labelcolor='orange')
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h21.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
+y = x2.T.dot(wopt).squeeze()
+
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h21.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
+
+d = compute_dprime(x1, x2, diag=True)
+wopt = d.wopt / np.linalg.norm(d.wopt)
+s2.plot([1.5, 1.5+amp*wopt[0][0]], [1.5, 1.5+amp*wopt[1][0]], "grey")
+s2.plot([1.5, 1.5-amp*wopt[0][0]], [1.5, 1.5-amp*wopt[1][0]], "grey")
+s2.plot([1.5, 1.5+amp*-wopt[1][0]], [1.5, 1.5+(amp*wopt[0][0])], "grey", linestyle="--")
+s2.plot([1.5, 1.5-amp*-wopt[1][0]], [1.5, 1.5-(amp*wopt[0][0])], "grey", linestyle="--")
+y = x1.T.dot(wopt).squeeze()
+
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h22.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
+y = x2.T.dot(wopt).squeeze()
+
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h22.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
+
+# EXAMPLE 3
+u1 = [2, 1]
+u2 = [1, 2]
+cov = np.array([
+    [1, np.sqrt(2) / 2],
+    [np.sqrt(2) / 2, 1]
+])
+x1 = np.random.multivariate_normal(u1, cov, nsamp).T
+x2 = np.random.multivariate_normal(u2, cov, nsamp).T
+e1 = compute_ellipse(x1[0], x1[1])
+e2 = compute_ellipse(x2[0], x2[1])
+s3.plot(e1[0], e1[1])
+s3.plot(e2[0], e2[1])
+# get decoding axis / plot histograms
+d = compute_dprime(x1, x2)
+wopt = d.wopt / np.linalg.norm(d.wopt)
+s3.plot([1.5, 1.5+amp*wopt[0][0]], [1.5, 1.5+amp*wopt[1][0]], "k-")
+s3.plot([1.5, 1.5-amp*wopt[0][0]], [1.5, 1.5-amp*wopt[1][0]], "k-")
+s3.plot([1.5, 1.5+amp*-wopt[1][0]], [1.5, 1.5+(amp*wopt[0][0])], "k--")
+s3.plot([1.5, 1.5-amp*-wopt[1][0]], [1.5, 1.5-(amp*wopt[0][0])], "k--")
+y = x1.T.dot(wopt).squeeze()
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h31.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
+y = x2.T.dot(wopt).squeeze()
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h31.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
+
+d = compute_dprime(x1, x2, diag=True)
+wopt = d.wopt / np.linalg.norm(d.wopt)
+s3.plot([1.5, 1.5+amp*wopt[0][0]], [1.5, 1.5+amp*wopt[1][0]], "grey")
+s3.plot([1.5, 1.5-amp*wopt[0][0]], [1.5, 1.5-amp*wopt[1][0]], "grey")
+s3.plot([1.5, 1.5+amp*-wopt[1][0]], [1.5, 1.5+(amp*wopt[0][0])], "grey", linestyle="--")
+s3.plot([1.5, 1.5-amp*-wopt[1][0]], [1.5, 1.5-(amp*wopt[0][0])], "grey", linestyle="--")
+y = x1.T.dot(wopt).squeeze()
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h32.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
+y = x2.T.dot(wopt).squeeze()
+y, x = np.histogram(y)
+f1opt, f1cov = curve_fit(gaus, x[1:], y)
+f1opt[-1] = 1
+h32.plot(np.arange(x[0], x[-1], 0.01), gaus(np.arange(x[0], x[-1], 0.01), *f1opt))
+
+for a in [s1, s2, s3]:
+    a.set_xlim((-1, 4))
+    a.set_ylim((-1, 4))
+for a in [s1, s2, s3, h11, h12, h21, h22, h31, h32]:
+    a.set_xticks([])
+    a.set_yticks([])
 
 f.tight_layout()
 
-if savefig:
+if savefig: 
     f.savefig(fig_name)
 
 plt.show()

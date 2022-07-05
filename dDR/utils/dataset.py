@@ -3,7 +3,9 @@ Helper for manipulating real spike data
 """
 import pickle
 import os 
-datapath = os.path.join(os.getcwd(), 'data/')
+import dDR
+ROOT_DIR = os.path.dirname(os.path.dirname(dDR.__file__))
+datapath = os.path.join(ROOT_DIR, 'data/')
 
 class Dataset:
 
