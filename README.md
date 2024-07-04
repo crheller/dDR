@@ -2,7 +2,7 @@
 
 dDR is a linear dimensionality reduction method for performing decoding analyses using neural population data in cases where the experimental data is limited. That is, cases where the number of neurons exceeds the number of observations (e.g. stimulus repetitions). dDR takes advantage of the fact that high-dimensional neural population data often exhibits low-dimensional, stimulus-independent dynamics. These low-dimensional activity patterns can be measured reliably, even when experimental repetitions are limited. Therefore, they can be leveraged to reliably measure decoding accuracy of both sensory stimuli and/or behavior. The process for performing dDR is explained graphically below. For more details on dDR, see our manuscript (https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0271136).
 
-![alt text](figures/final/fig3.png "dDR procedure")
+![alt text](figures/final/fig4.png "dDR procedure")
 
 ## Installing
 #### Install base package only
